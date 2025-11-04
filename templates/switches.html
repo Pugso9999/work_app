@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h4>รายการ Switch & Cameras</h4>
+    <a href="{{ url_for('add_switch') }}" class="btn btn-primary mb-3">เพิ่ม Switch</a>
+    <table class="table table-bordered table-striped">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>ชื่อ Switch</th>
+                <th>IP</th>
+                <th>Model</th>
+                <th>Ports</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Remark</th>
+                <th>Cameras</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sw in switches %}
+            <tr>
+                <td>{{ sw.id }}</td>
+                <td>{{ sw.name }}</td>
+                <td>{{ sw.ip }}</td>
+                <td>{{ sw.model }}</td>
+                <td>{{ sw.ports }}</td>
+                <td>{{ sw.location }}</td>
+                <td>{{ sw.status }}</td>
+                <td>{{ sw.remark }}</td>
+                <td>
+                    {% if camera_dict[sw.id] %}
+                        <ul>
+                        {% for cam in camera_dict[sw.id] %}
+                            <li>{{ cam.name }} ({{ cam.ip }})</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('edit_switch', id=sw.id) }}" class="btn btn-sm btn-warning">แก้ไข</a>
+                    <a href="{{ url_for('delete_switch', id=sw.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('คุณแน่ใจหรือไม่?')">ลบ</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3><i class="bi bi-pencil-square"></i> แก้ไขบันทึกการตรวจสอบ</h3>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">วันที่</label>
+      <input type="date" name="check_date" class="form-control" value="{{ check['check_date'] }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">รายการ</label>
+      <input type="text" name="item_name" class="form-control" value="{{ check['item_name'] }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">สถานะ</label>
+      <select name="status" class="form-select">
+        <option value="ปกติ" {% if check['status']=='ปกติ' %}selected{% endif %}>ปกติ</option>
+        <option value="ผิดปกติ" {% if check['status']=='ผิดปกติ' %}selected{% endif %}>ผิดปกติ</option>
+        <option value="รอตรวจสอบ" {% if check['status']=='รอตรวจสอบ' %}selected{% endif %}>รอตรวจสอบ</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">หมายเหตุ</label>
+      <textarea name="remark" class="form-control" rows="2">{{ check['remark'] }}</textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">ตรวจโดย</label>
+      <input type="text" name="checked_by" class="form-control" value="{{ check['checked_by'] }}">
+    </div>
+    <div class="d-flex gap-2 justify-content-end">
+      <a href="{{ url_for('daily_check_history') }}" class="btn btn-secondary">ยกเลิก</a>
+      <button type="submit" class="btn btn-primary">บันทึก</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

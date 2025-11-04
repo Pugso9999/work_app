@@ -1,0 +1,41 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f4f6f9;
+  color: #212529;
+}
+
+.navbar {
+  border-bottom: 3px solid rgba(255,255,255,0.2);
+}
+
+.btn-add-work {
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-add-work:hover {
+  transform: scale(1.05);
+  background-color: #218838;
+}
+
+.card {
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.card-summary {
+  border-radius: 12px;
+  padding: 20px;
+  font-weight: 600;
+}
+
+.chart-container {
+  position: relative;
+  height: 280px;
+}

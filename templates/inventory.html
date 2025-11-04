@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <h3><i class="bi bi-box-seam"></i> รายการอุปกรณ์</h3>
+  <div class="d-flex justify-content-end mb-3">
+    <a href="{{ url_for('add_inventory') }}" class="btn btn-success"><i class="bi bi-plus-lg"></i> เพิ่มสิ่งของ</a>
+  </div>
+  <table class="table table-bordered table-striped">
+    <thead class="table-warning">
+      <tr>
+        <th>ID</th>
+        <th>ชื่ออุปกรณ์</th>
+        <th>หมวดหมู่</th>
+        <th>จำนวน</th>
+        <th>สถานที่จัดเก็บ</th>
+        <th>หมายเหตุ</th>
+        <th>จัดการ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.id }}</td>
+        <td>{{ item.item_name }}</td>
+        <td>{{ item.category }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.location }}</td>
+        <td>{{ item.remark }}</td>
+        <td>
+          <a href="{{ url_for('edit_item', id=item.id) }}" class="btn btn-sm btn-primary">แก้ไข</a>
+          <a href="{{ url_for('delete_item', id=item.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('ต้องการลบใช่หรือไม่?')">ลบ</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

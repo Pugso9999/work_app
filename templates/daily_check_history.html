@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+  <h4 class="mb-3">ประวัติการตรวจสอบประจำวัน</h4>
+
+    <!-- ปรับขนาดกราฟ -->
+  <div style="max-width: 400px; margin: auto;">
+    <canvas id="statusChart" style="width:100%; height:300px;"></canvas>
+  </div>
+  
+  <canvas id="statusChart" height="100"></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const ctx = document.getElementById('statusChart');
+
+    const normalCount = {{ normal_count|default(0) }};
+    const errorCount = {{ error_count|default(0) }};
+    const pendingCount = {{ pending_count|default(0) }};
+
+    const data = {
+      labels: ['ปกติ', 'ผิดปกติ', 'รอตรวจสอบ'],
+      datasets: [{
+        label: 'จำนวนรายการ',
+        data: [normalCount, errorCount, pendingCount],
+        backgroundColor: ['#4caf50', '#f44336', '#ff9800']
+      }]
+    };
+
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'pie',
+        data: data,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+  </script>
+
+  <table class="table table-striped mt-4">
+    <thead class="table-primary">
+      <tr>
+        <th>วันที่</th>
+        <th>รายการตรวจสอบ</th>
+        <th>สถานะ</th>
+        <th>หมายเหตุ</th>
+        <th>ตรวจโดย</th>
+        <th>จัดการ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in checks %}
+      <tr>
+        <td>{{ c.check_date }}</td>
+        <td>{{ c.item_name }}</td>
+        <td>{{ c.status }}</td>
+        <td>{{ c.remark }}</td>
+        <td>{{ c.checked_by }}</td>
+        <td>
+          <a href="{{ url_for('edit_daily_check', id=c.id) }}" class="btn btn-sm btn-primary">แก้ไข</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

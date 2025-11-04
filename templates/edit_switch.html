@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4><i class="bi bi-pencil-square"></i> แก้ไข Switch</h4>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">ชื่อ</label>
+      <input name="name" class="form-control" value="{{ switch['name'] }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">IP</label>
+      <input name="ip" class="form-control" value="{{ switch['ip'] }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Model</label>
+      <input name="model" class="form-control" value="{{ switch['model'] }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Ports</label>
+      <input type="number" name="ports" class="form-control" value="{{ switch['ports'] }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">สถานที่</label>
+      <input name="location" class="form-control" value="{{ switch['location'] }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">สถานะ</label>
+      <input name="status" class="form-control" value="{{ switch['status'] }}">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">หมายเหตุ</label>
+      <textarea name="remark" class="form-control" rows="2">{{ switch['remark'] }}</textarea>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">รายการกล้อง</label>
+      <div id="camera-list" class="mb-2">
+        {% for c in cams %}
+        <div class="input-group mb-2">
+          <input type="text" name="camera_name[]" class="form-control" placeholder="ชื่อกล้อง (ไม่บังคับ)" value="{{ c['name'] }}">
+          <input type="text" name="camera_ip[]" class="form-control" placeholder="IP หรือ URL" value="{{ c['ip'] }}" required>
+          <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">ลบ</button>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-primary" onclick="addCameraRow()">+ เพิ่มกล้อง</button>
+    </div>
+
+    <div class="d-flex gap-2 justify-content-end">
+      <a href="{{ url_for('switches') }}" class="btn btn-outline-secondary">ยกเลิก</a>
+      <button class="btn btn-primary">บันทึก</button>
+    </div>
+  </form>
+</div>
+
+<script>
+function addCameraRow(name='', ip='') {
+  const list = document.getElementById('camera-list');
+  const row = document.createElement('div');
+  row.className = 'input-group mb-2';
+  row.innerHTML = `
+    <input type="text" name="camera_name[]" class="form-control" placeholder="ชื่อกล้อง (ไม่บังคับ)" value="${name}">
+    <input type="text" name="camera_ip[]" class="form-control" placeholder="IP หรือ URL" value="${ip}" required>
+    <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">ลบ</button>
+  `;
+  list.appendChild(row);
+}
+</script>
+{% endblock %}

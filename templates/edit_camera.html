@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4><i class="bi bi-camera"></i> แก้ไขกล้อง</h4>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">ชื่อกล้อง</label>
+      <input name="name" class="form-control" value="{{ cam['name'] }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">IP</label>
+      <input name="ip" class="form-control" value="{{ cam['ip'] }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Port</label>
+      <input type="number" name="port" class="form-control" value="{{ cam['port'] or '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">หมายเหตุ</label>
+      <textarea name="remark" class="form-control" rows="2">{{ cam['remark'] }}</textarea>
+    </div>
+    <div class="d-flex gap-2 justify-content-end">
+      <a href="{{ url_for('switches') }}" class="btn btn-outline-secondary">ยกเลิก</a>
+      <button class="btn btn-primary">บันทึก</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
