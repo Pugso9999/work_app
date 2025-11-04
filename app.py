@@ -157,6 +157,28 @@ def inventory():
     conn.close()
     return render_template("inventory.html", items=items)
 
+@app.route("/add_inventory", methods=["GET", "POST"])
+def add_inventory():
+    if request.method == "POST":
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO inventory (item_name, category, quantity, location, remark)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (
+            request.form["item_name"],
+            request.form.get("category"),
+            request.form.get("quantity") or 0,
+            request.form.get("location"),
+            request.form.get("remark")
+        ))
+        conn.commit()
+        conn.close()
+        auto_backup_db()
+        flash("เพิ่มรายการสำเร็จ", "success")
+        return redirect(url_for("inventory"))
+    return render_template("add_inventory.html")
+
 
 # ---------------------------------
 # เพิ่มงาน
@@ -292,6 +314,15 @@ def add_daily_check():
     auto_backup_db()
     flash("บันทึกข้อมูลเรียบร้อยแล้ว", "success")
     return redirect(url_for("daily_check"))
+
+@app.route("/daily_check_history")
+def daily_check_history():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM daily_checks ORDER BY id DESC")
+    checks = cur.fetchall()
+    conn.close()
+    return render_template("daily_check_history.html", checks=checks)
 
 
 # ---------------------------------
