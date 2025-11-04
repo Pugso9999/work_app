@@ -109,7 +109,7 @@ def index():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    logs_query = "SELECT id, work_date, category, description, status FROM work_logs ORDER BY id DESC"
+    logs_query = "SELECT id, work_date, category, description, status FROM work_logs ORDER BY work_date::date DESC, id DESC"
     cur.execute(logs_query)
     logs = cur.fetchall()
 
