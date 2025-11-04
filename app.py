@@ -146,6 +146,19 @@ def index():
 
 
 # ---------------------------------
+# Inventory
+# ---------------------------------
+@app.route("/inventory")
+def inventory():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM inventory ORDER BY id DESC")
+    items = cur.fetchall()
+    conn.close()
+    return render_template("inventory.html", items=items)
+
+
+# ---------------------------------
 # เพิ่มงาน
 # ---------------------------------
 @app.route("/add", methods=["GET", "POST"])
@@ -205,11 +218,9 @@ def switches():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # ดึง Switches ทั้งหมด
     cur.execute("SELECT * FROM switches ORDER BY id DESC")
     switches = cur.fetchall()
 
-    # ดึงกล้องทั้งหมด และรวมกับ switch
     cur.execute("SELECT * FROM cameras")
     cameras = cur.fetchall()
     camera_dict = {}
@@ -240,7 +251,6 @@ def add_switch():
         ))
         switch_id = cur.fetchone()['id']
 
-        # กล้อง
         names = request.form.getlist('camera_name[]')
         ips = request.form.getlist('camera_ip[]')
         for n, i in zip(names, ips):
@@ -254,61 +264,6 @@ def add_switch():
         return redirect(url_for("switches"))
 
     return render_template("add_switch.html")
-
-
-@app.route("/edit_switch/<int:id>", methods=["GET", "POST"])
-def edit_switch(id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    if request.method == "POST":
-        cur.execute("""
-            UPDATE switches
-            SET name=%s, ip=%s, model=%s, ports=%s, location=%s, status=%s, remark=%s
-            WHERE id=%s
-        """, (
-            request.form.get("name"),
-            request.form.get("ip"),
-            request.form.get("model"),
-            int(request.form.get("ports") or 0),
-            request.form.get("location"),
-            request.form.get("status"),
-            request.form.get("remark"),
-            id
-        ))
-        # อัพเดทกล้อง: ลบกล้องเดิมก่อน แล้วเพิ่มใหม่
-        cur.execute("DELETE FROM cameras WHERE switch_id=%s", (id,))
-        names = request.form.getlist('camera_name[]')
-        ips = request.form.getlist('camera_ip[]')
-        for n, i in zip(names, ips):
-            if i:
-                cur.execute("INSERT INTO cameras (switch_id, name, ip) VALUES (%s, %s, %s)", (id, n, i))
-
-        conn.commit()
-        conn.close()
-        auto_backup_db()
-        flash("แก้ไข Switch สำเร็จ", "success")
-        return redirect(url_for("switches"))
-
-    # GET method
-    cur.execute("SELECT * FROM switches WHERE id=%s", (id,))
-    switch = cur.fetchone()
-    cur.execute("SELECT * FROM cameras WHERE switch_id=%s", (id,))
-    cameras = cur.fetchall()
-    conn.close()
-    return render_template("edit_switch.html", switch=switch, cameras=cameras)
-
-
-@app.route("/delete_switch/<int:id>")
-def delete_switch(id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM switches WHERE id=%s", (id,))
-    conn.commit()
-    conn.close()
-    auto_backup_db()
-    flash("ลบ Switch สำเร็จ", "success")
-    return redirect(url_for("switches"))
 
 
 # ---------------------------------
