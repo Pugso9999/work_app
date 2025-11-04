@@ -109,31 +109,11 @@ def index():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    date_filter = request.args.get("date")
-    status_filter = request.args.get("status")
-    category_filter = request.args.get("category_filter")
-    keyword = request.args.get("keyword")
-
-    query = "SELECT id, work_date, category, description, status FROM work_logs WHERE 1=1"
-    params = []
-
-    if date_filter:
-        query += " AND work_date=%s"
-        params.append(date_filter)
-    if status_filter:
-        query += " AND status=%s"
-        params.append(status_filter)
-    if category_filter:
-        query += " AND category=%s"
-        params.append(category_filter)
-    if keyword:
-        query += " AND (category ILIKE %s OR description ILIKE %s)"
-        params.extend([f"%{keyword}%", f"%{keyword}%"])
-
-    query += " ORDER BY id DESC"
-    cur.execute(query, params)
+    logs_query = "SELECT id, work_date, category, description, status FROM work_logs ORDER BY id DESC"
+    cur.execute(logs_query)
     logs = cur.fetchall()
 
+    # นับจำนวนงานตามสถานะ
     cur.execute("SELECT COUNT(*) FROM work_logs WHERE status='done'")
     done = cur.fetchone()['count']
     cur.execute("SELECT COUNT(*) FROM work_logs WHERE status='in progress'")
@@ -142,7 +122,19 @@ def index():
     pending = cur.fetchone()['count']
 
     conn.close()
+
+    # แปลงสถานะจากอังกฤษ -> ไทย
+    status_dict = {
+        'done': 'เสร็จสิ้น',
+        'in progress': 'กำลังดำเนินการ',
+        'pending': 'รอดำเนินการ'
+    }
+
+    for log in logs:
+        log['status_th'] = status_dict.get(log['status'], log['status'])
+
     return render_template("index.html", logs=logs, done=done, in_progress=in_progress, pending=pending)
+
 
 
 # ---------------------------------
@@ -229,7 +221,9 @@ def delete(id):
     conn.commit()
     conn.close()
     auto_backup_db()
+    flash("ลบงานเรียบร้อยแล้ว", "success")
     return redirect("/")
+
 
 
 # ---------------------------------

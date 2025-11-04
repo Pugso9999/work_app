@@ -2,29 +2,25 @@
 {% block content %}
 <div class="container mt-4">
   <h3>แก้ไขงาน</h3>
-  <form method="POST">
-    <div class="mb-3">
-      <label class="form-label">วันที่</label>
-      <input type="date" name="work_date" class="form-control" value="{{ log['work_date'] }}" required>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">หมวดหมู่</label>
-      <input type="text" name="category" class="form-control" value="{{ log['category'] }}">
-    </div>
-    <div class="mb-3">
-      <label class="form-label">รายละเอียด</label>
-      <textarea name="description" class="form-control" required>{{ log['description'] }}</textarea>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">สถานะ</label>
-      <select name="status" class="form-select">
-        <option value="done" {% if log['status']=='done' %}selected{% endif %}>เสร็จแล้ว</option>
-        <option value="in progress" {% if log['status']=='in progress' %}selected{% endif %}>กำลังทำ</option>
-        <option value="pending" {% if log['status']=='pending' %}selected{% endif %}>รอดำเนินการ</option>
-      </select>
-    </div>
-    <button type="submit" class="btn btn-primary">บันทึก</button>
-    <a href="{{ url_for('index') }}" class="btn btn-secondary">ยกเลิก</a>
-  </form>
+ <form method="POST">
+    <label>วันที่ทำงาน:</label>
+    <input type="date" name="work_date" value="{{ log.work_date }}" required><br>
+
+    <label>หมวดหมู่:</label>
+    <input type="text" name="category" value="{{ log.category }}"><br>
+
+    <label>รายละเอียด:</label>
+    <textarea name="description" required>{{ log.description }}</textarea><br>
+
+    <label>สถานะ:</label>
+    <select name="status" required>
+        <option value="done" {% if log.status == 'done' %}selected{% endif %}>เสร็จสิ้น</option>
+        <option value="in progress" {% if log.status == 'in progress' %}selected{% endif %}>กำลังดำเนินการ</option>
+        <option value="pending" {% if log.status == 'pending' %}selected{% endif %}>รอดำเนินการ</option>
+    </select><br>
+
+    <button type="submit">อัปเดต</button>
+</form>
+
 </div>
 {% endblock %}
