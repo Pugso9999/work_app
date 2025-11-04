@@ -4,9 +4,7 @@
 <!-- Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2 class="fw-bold"><i class="bi bi-speedometer2"></i> Dashboard</h2>
-  <a href="/add" class="btn btn-success shadow-sm">
-    <i class="bi bi-plus-lg"></i> เพิ่มงาน
-  </a>
+  <a href="/add" class="btn btn-success shadow-sm">เพิ่มงาน</a>
 </div>
 
 <!-- หมายเหตุข้อมูล -->
@@ -79,30 +77,6 @@
   </div>
 </div>
 
-<!-- Charts -->
-<div class="row g-3 mb-4">
-  <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="fw-bold text-center mb-3">สัดส่วนงานทั้งหมด</h6>
-        <div class="chart-container" style="height:250px;">
-          <canvas id="statusChart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="fw-bold text-center mb-3">สถิติย้อนหลัง 7 วัน</h6>
-        <div class="chart-container" style="height:250px;">
-          <canvas id="trendChart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Table -->
 <div class="card shadow-sm">
   <div class="card-header bg-primary text-white fw-bold">
@@ -122,13 +96,13 @@
       <tbody>
         {% for log in logs %}
         <tr>
-          <td class="text-nowrap text-center">{{ log.work_date }}</td>
-          <td>{{ log.category }}</td>
-          <td>{{ log.description }}</td>
+          <td class="text-nowrap text-center">{{ log['work_date'] }}</td>
+          <td>{{ log['category'] }}</td>
+          <td>{{ log['description'] }}</td>
           <td class="text-center">
-            {% if log.status == 'done' %}
+            {% if log['status'] == 'done' %}
               <span class="badge bg-success">เสร็จแล้ว</span>
-            {% elif log.status == 'in progress' %}
+            {% elif log['status'] == 'in progress' %}
               <span class="badge bg-warning text-dark">กำลังทำ</span>
             {% else %}
               <span class="badge bg-danger">รอดำเนินการ</span>
@@ -136,10 +110,10 @@
           </td>
           <td class="text-center">
             <div class="d-flex justify-content-center gap-2 flex-nowrap">
-              <a href="/edit/{{ log.id }}" class="btn btn-sm btn-outline-warning">
+              <a href="/edit/{{ log['id'] }}" class="btn btn-sm btn-outline-warning">
                 <i class="bi bi-pencil"></i>
               </a>
-              <a href="/delete/{{ log.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('คุณแน่ใจหรือไม่?')">
+              <a href="/delete/{{ log['id'] }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('คุณแน่ใจหรือไม่?')">
                 <i class="bi bi-trash"></i>
               </a>
             </div>
