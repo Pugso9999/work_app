@@ -1,48 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-5">
-  <div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-      <h2 class="mb-0"><i class="bi bi-plus-circle-fill"></i> เพิ่มงานใหม่</h2>
+<div class="container mt-4">
+  <h3>เพิ่มงานใหม่</h3>
+  <form method="POST">
+    <div class="mb-3">
+      <label for="work_date" class="form-label">วันที่</label>
+      <input type="date" class="form-control" id="work_date" name="work_date" value="{{ today }}" required>
     </div>
-    <div class="card-body">
-      <form method="POST">
-    <label>วันที่ทำงาน:</label>
-    <input type="date" name="work_date" value="{{ today }}" required><br>
-
-    <label>หมวดหมู่:</label>
-    <input type="text" name="category"><br>
-
-    <label>รายละเอียด:</label>
-    <textarea name="description" required></textarea><br>
-
-    <label>สถานะ:</label>
-    <select name="status" required>
-        <option value="done">เสร็จสิ้น</option>
-        <option value="in progress">กำลังดำเนินการ</option>
+    <div class="mb-3">
+      <label for="category" class="form-label">หมวดหมู่</label>
+      <select class="form-select" name="category">
+        <option value="Hardware">Hardware</option>
+        <option value="Software">Software</option>
+        <option value="General">General</option>
+        <option value="Configuration,System">Configuration,System</option>
+        <option value="Troubleshoot">Troubleshoot</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label for="description" class="form-label">รายละเอียด</label>
+      <textarea class="form-control" name="description" rows="3" required></textarea>
+    </div>
+    <div class="mb-3">
+      <label for="status" class="form-label">สถานะ</label>
+      <select class="form-select" name="status">
+        <option value="done">เสร็จแล้ว</option>
+        <option value="in progress">กำลังทำ</option>
         <option value="pending">รอดำเนินการ</option>
-    </select><br>
-
-    <button type="submit">บันทึก</button>
-</form>
-
+      </select>
     </div>
-  </div>
+    <button type="submit" class="btn btn-primary">บันทึก</button>
+    <a href="/" class="btn btn-secondary">ยกเลิก</a>
+  </form>
 </div>
-
-<script>
-(() => {
-  'use strict'
-  const forms = document.querySelectorAll('.needs-validation')
-  Array.from(forms).forEach(form => {
-    form.addEventListener('submit', event => {
-      if (!form.checkValidity()) {
-        event.preventDefault()
-        event.stopPropagation()
-      }
-      form.classList.add('was-validated')
-    }, false)
-  })
-})();
-</script>
 {% endblock %}
