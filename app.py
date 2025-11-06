@@ -9,14 +9,21 @@ import datetime
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
+# ---------------------------------
+# DATABASE CONFIG
+# ---------------------------------
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL not found. Please set in Render Environment Variables.")
+
 def get_db_connection():
-    return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+    return conn
 
 
 # ---------------------------------
-# สร้างตาราง (ไม่ลบของเดิม)
+# INITIALIZE TABLES
 # ---------------------------------
 def init_db():
     conn = get_db_connection()
@@ -83,7 +90,7 @@ init_db()
 
 
 # ---------------------------------
-# ฟังก์ชันสำรองฐานข้อมูล
+# BACKUP FUNCTION (safe mode for Render)
 # ---------------------------------
 def auto_backup_db():
     try:
@@ -92,11 +99,12 @@ def auto_backup_db():
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_file = os.path.join(backup_dir, f"backup_{timestamp}.sql")
 
-        subprocess.run(
-            ["pg_dump", DATABASE_URL, "-f", backup_file],
-            check=True
-        )
-        print(f"[Auto Backup] สำรองฐานข้อมูลเรียบร้อย -> {backup_file}")
+        # Check if pg_dump exists (Render may not have it)
+        if subprocess.call(["which", "pg_dump"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+            subprocess.run(["pg_dump", DATABASE_URL, "-f", backup_file], check=True)
+            print(f"[Auto Backup] สำรองฐานข้อมูลเรียบร้อย -> {backup_file}")
+        else:
+            print("[Auto Backup] ⚠️ ข้ามการสำรอง: Render ไม่มี pg_dump")
     except Exception as e:
         print(f"[Auto Backup Error] {e}")
 
@@ -109,11 +117,9 @@ def index():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    logs_query = "SELECT id, work_date, category, description, status FROM work_logs ORDER BY work_date::date DESC, id DESC"
-    cur.execute(logs_query)
+    cur.execute("SELECT id, work_date, category, description, status FROM work_logs ORDER BY work_date::date DESC, id DESC")
     logs = cur.fetchall()
 
-    # นับจำนวนงานตามสถานะ
     cur.execute("SELECT COUNT(*) FROM work_logs WHERE status='done'")
     done = cur.fetchone()['count']
     cur.execute("SELECT COUNT(*) FROM work_logs WHERE status='in progress'")
@@ -123,7 +129,6 @@ def index():
 
     conn.close()
 
-    # แปลงสถานะจากอังกฤษ -> ไทย
     status_dict = {
         'done': 'เสร็จสิ้น',
         'in progress': 'กำลังดำเนินการ',
@@ -134,7 +139,6 @@ def index():
         log['status_th'] = status_dict.get(log['status'], log['status'])
 
     return render_template("index.html", logs=logs, done=done, in_progress=in_progress, pending=pending)
-
 
 
 # ---------------------------------
@@ -148,6 +152,7 @@ def inventory():
     items = cur.fetchall()
     conn.close()
     return render_template("inventory.html", items=items)
+
 
 @app.route("/add_inventory", methods=["GET", "POST"])
 def add_inventory():
@@ -213,6 +218,7 @@ def edit(id):
     conn.close()
     return render_template("edit.html", log=log)
 
+
 @app.route("/delete/<int:id>")
 def delete(id):
     conn = get_db_connection()
@@ -225,7 +231,6 @@ def delete(id):
     return redirect("/")
 
 
-
 # ---------------------------------
 # Switch & Cameras
 # ---------------------------------
@@ -233,7 +238,6 @@ def delete(id):
 def switches():
     conn = get_db_connection()
     cur = conn.cursor()
-
     cur.execute("SELECT * FROM switches ORDER BY id DESC")
     switches = cur.fetchall()
 
@@ -252,7 +256,6 @@ def add_switch():
     if request.method == "POST":
         conn = get_db_connection()
         cur = conn.cursor()
-
         cur.execute("""
             INSERT INTO switches (name, ip, model, ports, location, status, remark)
             VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
@@ -289,6 +292,7 @@ def add_switch():
 def daily_check():
     return render_template("daily_check.html")
 
+
 @app.route("/add_daily_check", methods=["POST"])
 def add_daily_check():
     conn = get_db_connection()
@@ -308,6 +312,7 @@ def add_daily_check():
     auto_backup_db()
     flash("บันทึกข้อมูลเรียบร้อยแล้ว", "success")
     return redirect(url_for("daily_check"))
+
 
 @app.route("/daily_check_history")
 def daily_check_history():
@@ -332,10 +337,7 @@ def restore_latest():
             return redirect("/")
         latest = max(files)
         file_path = os.path.join(backup_dir, latest)
-        subprocess.run(
-            ["psql", DATABASE_URL, "-f", file_path],
-            check=True
-        )
+        subprocess.run(["psql", DATABASE_URL, "-f", file_path], check=True)
         flash(f"คืนค่าฐานข้อมูลจาก {latest} สำเร็จ", "success")
     except Exception as e:
         flash(f"เกิดข้อผิดพลาดในการคืนค่า: {e}", "danger")
@@ -343,17 +345,13 @@ def restore_latest():
 
 
 # ---------------------------------
-# Run Flask App
-# ---------------------------------
-# ---------------------------------
-# เพิ่มข้อมูลอัตโนมัติ (ตั้งแต่ 20/10/2025 - 6/11/2025)
+# INSERT AUTO DATA
 # ---------------------------------
 @app.route("/insert_auto_data")
 def insert_auto_data():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # ลิสต์รายการตรวจสอบที่ต้องการเพิ่ม
     items = [
         "ตรวจสอบระบบ Server",
         "ตรวจสอบกล้อง CCTV",
@@ -397,5 +395,8 @@ def insert_auto_data():
     return f"✅ เพิ่มข้อมูลอัตโนมัติแล้วทั้งหมด {added_count} รายการเรียบร้อย!"
 
 
+# ---------------------------------
+# RUN
+# ---------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
