@@ -314,14 +314,25 @@ def add_daily_check():
     return redirect(url_for("daily_check"))
 
 
-@app.route("/daily_check_history")
+@app.route('/daily_check_history')
 def daily_check_history():
-    conn = get_db_connection()
+    conn = sqlite3.connect(DB)
     cur = conn.cursor()
-    cur.execute("SELECT * FROM daily_checks ORDER BY id DESC")
+    cur.execute("SELECT * FROM daily_checks")
     checks = cur.fetchall()
+
+    normal_count = cur.execute("SELECT COUNT(*) FROM daily_checks WHERE status='ปกติ'").fetchone()[0]
+    error_count = cur.execute("SELECT COUNT(*) FROM daily_checks WHERE status='ผิดปกติ'").fetchone()[0]
+    pending_count = cur.execute("SELECT COUNT(*) FROM daily_checks WHERE status='รอตรวจสอบ'").fetchone()[0]
     conn.close()
-    return render_template("daily_check_history.html", checks=checks)
+
+    return render_template(
+        'daily_check_history.html',
+        checks=checks,
+        normal_count=normal_count,
+        error_count=error_count,
+        pending_count=pending_count
+    )
 
 
 # ---------------------------------
