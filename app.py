@@ -4,9 +4,7 @@ from psycopg2.extras import RealDictCursor
 from datetime import date
 import subprocess
 import datetime
-import os, sqlite3
-
-DB = os.path.join(os.path.dirname(__file__), "worklog.db")
+import os
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
@@ -22,7 +20,6 @@ if not DATABASE_URL:
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
     return conn
-
 
 # ---------------------------------
 # INITIALIZE TABLES
@@ -90,7 +87,6 @@ def init_db():
 
 init_db()
 
-
 # ---------------------------------
 # BACKUP FUNCTION (safe mode for Render)
 # ---------------------------------
@@ -101,7 +97,6 @@ def auto_backup_db():
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_file = os.path.join(backup_dir, f"backup_{timestamp}.sql")
 
-        # Check if pg_dump exists (Render may not have it)
         if subprocess.call(["which", "pg_dump"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
             subprocess.run(["pg_dump", DATABASE_URL, "-f", backup_file], check=True)
             print(f"[Auto Backup] สำรองฐานข้อมูลเรียบร้อย -> {backup_file}")
@@ -109,7 +104,6 @@ def auto_backup_db():
             print("[Auto Backup] ⚠️ ข้ามการสำรอง: Render ไม่มี pg_dump")
     except Exception as e:
         print(f"[Auto Backup Error] {e}")
-
 
 # ---------------------------------
 # หน้าแรก
@@ -142,7 +136,6 @@ def index():
 
     return render_template("index.html", logs=logs, done=done, in_progress=in_progress, pending=pending)
 
-
 # ---------------------------------
 # Inventory
 # ---------------------------------
@@ -154,7 +147,6 @@ def inventory():
     items = cur.fetchall()
     conn.close()
     return render_template("inventory.html", items=items)
-
 
 @app.route("/add_inventory", methods=["GET", "POST"])
 def add_inventory():
@@ -169,7 +161,7 @@ def add_inventory():
             request.form.get("category"),
             request.form.get("quantity") or 0,
             request.form.get("location"),
-            request.form.get("remark")
+            request.form.get("remark")   # แก้จาก note -> remark
         ))
         conn.commit()
         conn.close()
@@ -177,7 +169,6 @@ def add_inventory():
         flash("เพิ่มรายการสำเร็จ", "success")
         return redirect(url_for("inventory"))
     return render_template("add_inventory.html")
-
 
 # ---------------------------------
 # เพิ่มงาน
@@ -196,7 +187,6 @@ def add():
         auto_backup_db()
         return redirect("/")
     return render_template("add.html", today=date.today())
-
 
 # ---------------------------------
 # แก้ไข / ลบ งาน
@@ -220,7 +210,6 @@ def edit(id):
     conn.close()
     return render_template("edit.html", log=log)
 
-
 @app.route("/delete/<int:id>")
 def delete(id):
     conn = get_db_connection()
@@ -231,7 +220,6 @@ def delete(id):
     auto_backup_db()
     flash("ลบงานเรียบร้อยแล้ว", "success")
     return redirect("/")
-
 
 # ---------------------------------
 # Switch & Cameras
@@ -251,7 +239,6 @@ def switches():
 
     conn.close()
     return render_template("switches.html", switches=switches, camera_dict=camera_dict)
-
 
 @app.route("/add_switch", methods=["GET", "POST"])
 def add_switch():
@@ -286,14 +273,12 @@ def add_switch():
 
     return render_template("add_switch.html")
 
-
 # ---------------------------------
 # ตรวจสอบประจำวัน
 # ---------------------------------
 @app.route("/daily_check")
 def daily_check():
     return render_template("daily_check.html")
-
 
 @app.route("/add_daily_check", methods=["POST"])
 def add_daily_check():
@@ -315,26 +300,18 @@ def add_daily_check():
     flash("บันทึกข้อมูลเรียบร้อยแล้ว", "success")
     return redirect(url_for("daily_check"))
 
-
 @app.route('/daily_check_history')
 def daily_check_history():
-    conn = psycopg2.connect(
-        host="dpg-xxxxxx.oregon-postgres.render.com",  # เปลี่ยนเป็น host ของคุณ
-        database="worklog",                            # เปลี่ยนเป็นชื่อ database ของคุณ
-        user="postgres",
-        password="รหัสของคุณ",
-        sslmode='require',                             # ✅ บรรทัดนี้สำคัญมาก
-        cursor_factory=RealDictCursor
-    )
+    # ใช้ get_db_connection แทน hardcode host/password
+    conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM daily_checks ORDER BY check_date DESC")
+    cur.execute("SELECT * FROM daily_checks ORDER BY check_date DESC, id DESC")
     checks = cur.fetchall()
 
     normal_count = sum(1 for c in checks if c['status'] == 'ปกติ')
     error_count = sum(1 for c in checks if c['status'] == 'ผิดปกติ')
     pending_count = sum(1 for c in checks if c['status'] == 'รอตรวจสอบ')
 
-    cur.close()
     conn.close()
 
     return render_template(
@@ -344,8 +321,6 @@ def daily_check_history():
         error_count=error_count,
         pending_count=pending_count
     )
-
-
 
 # ---------------------------------
 # คืนค่าฐานข้อมูลจากไฟล์ล่าสุด
@@ -365,7 +340,6 @@ def restore_latest():
     except Exception as e:
         flash(f"เกิดข้อผิดพลาดในการคืนค่า: {e}", "danger")
     return redirect("/")
-
 
 # ---------------------------------
 # INSERT AUTO DATA
@@ -416,7 +390,6 @@ def insert_auto_data():
     conn.close()
     auto_backup_db()
     return f"✅ เพิ่มข้อมูลอัตโนมัติแล้วทั้งหมด {added_count} รายการเรียบร้อย!"
-
 
 # ---------------------------------
 # RUN
