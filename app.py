@@ -319,17 +319,17 @@ def add_daily_check():
 @app.route('/daily_check_history')
 def daily_check_history():
     conn = psycopg2.connect(
-        host="dpg-xxxxxx.oregon-postgres.render.com",  # แก้เป็นของคุณ
-        database="worklog",
+        host="dpg-xxxxxx.oregon-postgres.render.com",  # เปลี่ยนเป็น host ของคุณ
+        database="worklog",                            # เปลี่ยนเป็นชื่อ database ของคุณ
         user="postgres",
         password="รหัสของคุณ",
+        sslmode='require',                             # ✅ บรรทัดนี้สำคัญมาก
         cursor_factory=RealDictCursor
     )
     cur = conn.cursor()
     cur.execute("SELECT * FROM daily_checks ORDER BY check_date DESC")
     checks = cur.fetchall()
 
-    # นับจำนวนแต่ละสถานะ
     normal_count = sum(1 for c in checks if c['status'] == 'ปกติ')
     error_count = sum(1 for c in checks if c['status'] == 'ผิดปกติ')
     pending_count = sum(1 for c in checks if c['status'] == 'รอตรวจสอบ')
