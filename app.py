@@ -345,5 +345,57 @@ def restore_latest():
 # ---------------------------------
 # Run Flask App
 # ---------------------------------
+# ---------------------------------
+# เพิ่มข้อมูลอัตโนมัติ (ตั้งแต่ 20/10/2025 - 6/11/2025)
+# ---------------------------------
+@app.route("/insert_auto_data")
+def insert_auto_data():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # ลิสต์รายการตรวจสอบที่ต้องการเพิ่ม
+    items = [
+        "ตรวจสอบระบบ Server",
+        "ตรวจสอบกล้อง CCTV",
+        "ตรวจสอบสวิตช์เครือข่าย",
+        "ตรวจสอบเครื่องสำรองไฟ (UPS)",
+        "ตรวจสอบระบบอินเทอร์เน็ต",
+        "ตรวจสอบอุปกรณ์สำนักงาน",
+        "ตรวจสอบเครื่องพิมพ์",
+        "ตรวจสอบระบบแสงสว่าง",
+        "ตรวจสอบอุณหภูมิห้อง Server",
+        "ตรวจสอบระบบ NAS สำรองข้อมูล"
+    ]
+
+    statuses = ["ปกติ", "ผิดปกติ", "รอตรวจสอบ"]
+
+    start_date = datetime.date(2025, 10, 20)
+    end_date = datetime.date(2025, 11, 6)
+    delta = datetime.timedelta(days=1)
+
+    current_date = start_date
+    added_count = 0
+
+    while current_date <= end_date:
+        for item in items:
+            cur.execute("""
+                INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                current_date.strftime("%Y-%m-%d"),
+                item,
+                statuses[added_count % len(statuses)],
+                "ข้อมูลอัตโนมัติ",
+                "System Bot"
+            ))
+            added_count += 1
+        current_date += delta
+
+    conn.commit()
+    conn.close()
+    auto_backup_db()
+    return f"✅ เพิ่มข้อมูลอัตโนมัติแล้วทั้งหมด {added_count} รายการเรียบร้อย!"
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000, debug=True)
