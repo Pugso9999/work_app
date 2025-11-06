@@ -2,10 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 import psycopg2 
 from psycopg2.extras import RealDictCursor
 from datetime import date
-import os
 import subprocess
 import datetime
-import sqlite3
+import os, sqlite3
+
+DB = os.path.join(os.path.dirname(__file__), "worklog.db")
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
@@ -317,14 +318,23 @@ def add_daily_check():
 
 @app.route('/daily_check_history')
 def daily_check_history():
-    conn = sqlite3.connect(DB)
+    conn = psycopg2.connect(
+        host="dpg-xxxxxx.oregon-postgres.render.com",  # แก้เป็นของคุณ
+        database="worklog",
+        user="postgres",
+        password="รหัสของคุณ",
+        cursor_factory=RealDictCursor
+    )
     cur = conn.cursor()
-    cur.execute("SELECT * FROM daily_checks")
+    cur.execute("SELECT * FROM daily_checks ORDER BY check_date DESC")
     checks = cur.fetchall()
 
-    normal_count = cur.execute("SELECT COUNT(*) FROM daily_checks WHERE status='ปกติ'").fetchone()[0]
-    error_count = cur.execute("SELECT COUNT(*) FROM daily_checks WHERE status='ผิดปกติ'").fetchone()[0]
-    pending_count = cur.execute("SELECT COUNT(*) FROM daily_checks WHERE status='รอตรวจสอบ'").fetchone()[0]
+    # นับจำนวนแต่ละสถานะ
+    normal_count = sum(1 for c in checks if c['status'] == 'ปกติ')
+    error_count = sum(1 for c in checks if c['status'] == 'ผิดปกติ')
+    pending_count = sum(1 for c in checks if c['status'] == 'รอตรวจสอบ')
+
+    cur.close()
     conn.close()
 
     return render_template(
@@ -334,6 +344,7 @@ def daily_check_history():
         error_count=error_count,
         pending_count=pending_count
     )
+
 
 
 # ---------------------------------
