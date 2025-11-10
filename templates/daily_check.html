@@ -2,12 +2,13 @@
 {% block content %}
 
 <div class="container mt-4">
+  <!-- ฟอร์มบันทึกประจำวัน -->
   <div class="card shadow-sm border-0">
     <div class="card-header bg-primary text-white">
       <h5 class="mb-0">บันทึกประจำวัน</h5>
     </div>
     <div class="card-body">
-      <form method="POST" action="{{ url_for('add_daily_check') }}">
+      <form id="dailyCheckForm">
         <div class="row g-3">
           <div class="col-md-4">
             <label>วันที่ตรวจสอบ:</label>
@@ -46,11 +47,70 @@
     </div>
   </div>
 
+  <!-- Pie chart -->
+  <div class="mt-4">
+    <h5>สถิติสถานะการตรวจสอบ</h5>
+    <canvas id="pieChart" width="400" height="400"></canvas>
+  </div>
+
+  <!-- ปุ่มดูประวัติ -->
   <div class="mt-4">
     <a href="{{ url_for('daily_check_history') }}" class="btn btn-outline-primary">
       ดูประวัติการบันทึกประจำวัน
     </a>
   </div>
 </div>
+
+<!-- Chart.js + AJAX -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+let ctx = document.getElementById('pieChart').getContext('2d');
+let pieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+        labels: [],
+        datasets: [{
+            data: [],
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(255, 206, 86, 0.6)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+    }
+});
+
+// ฟังก์ชันดึงข้อมูลและอัปเดต Pie chart
+function updateChart() {
+    $.getJSON("{{ url_for('daily_check_stats_json') }}", function(res){
+        pieChart.data.labels = res.labels;
+        pieChart.data.datasets[0].data = res.data;
+        pieChart.update();
+    });
+}
+
+// เรียกอัปเดตตอนโหลดหน้า
+updateChart();
+
+// ส่งฟอร์มด้วย AJAX
+$('#dailyCheckForm').submit(function(e){
+    e.preventDefault();
+    $.post("{{ url_for('add_daily_check') }}", $(this).serialize(), function(response){
+        // รีเซ็ตฟอร์ม
+        $('#dailyCheckForm')[0].reset();
+        // อัปเดต Pie chart ใหม่
+        updateChart();
+        alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว");
+    }).fail(function(xhr){
+        alert(xhr.responseText || "❌ เกิดข้อผิดพลาด");
+    });
+});
+</script>
 
 {% endblock %}

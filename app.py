@@ -300,26 +300,61 @@ def add_switch():
 # ---------------------------------
 @app.route("/daily_check")
 def daily_check():
-    return render_template("daily_check.html")
+    conn = get_db_connection()
+    cur = conn.cursor()
+    # ดึงสถิติสำหรับ Pie chart
+    cur.execute("SELECT status, COUNT(*) AS count FROM daily_checks GROUP BY status")
+    stats = cur.fetchall()
+    conn.close()
+
+    labels = [s['status'] for s in stats]
+    data = [s['count'] for s in stats]
+
+    return render_template("daily_check.html", labels=labels, data=data)
+@app.route("/daily_check_stats_json")
+def daily_check_stats_json():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT status, COUNT(*) AS count FROM daily_checks GROUP BY status")
+    stats = cur.fetchall()
+    conn.close()
+
+    labels = [s['status'] for s in stats]
+    data = [s['count'] for s in stats]
+
+    return {"labels": labels, "data": data}
 
 @app.route("/add_daily_check", methods=["POST"])
 def add_daily_check():
+    check_date = request.form["check_date"]
+    item_name = request.form["item_name"]
+    status = request.form["status"]
+    remark = request.form["remark"]
+    checked_by = request.form["checked_by"]
+
     conn = get_db_connection()
     cur = conn.cursor()
+
+    # ตรวจสอบข้อมูลซ้ำ
+    cur.execute("""
+        SELECT * FROM daily_checks
+        WHERE check_date=%s AND item_name=%s
+    """, (check_date, item_name))
+    exists = cur.fetchone()
+    if exists:
+        flash(f"❌ ข้อมูล '{item_name}' ของวันที่ {check_date} ซ้ำ ไม่สามารถเพิ่มได้", "warning")
+        conn.close()
+        return redirect(url_for("daily_check"))
+
+    # เพิ่มข้อมูลใหม่
     cur.execute("""
         INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by, created_at)
         VALUES (%s, %s, %s, %s, %s, NOW())
-    """, (
-        request.form["check_date"],
-        request.form["item_name"],
-        request.form["status"],
-        request.form["remark"],
-        request.form["checked_by"]
-    ))
+    """, (check_date, item_name, status, remark, checked_by))
     conn.commit()
     conn.close()
     auto_backup_db()
-    flash("✅ บันทึกข้อมูลเรียบร้อยแล้ว", "success")
+    flash(f"✅ บันทึกข้อมูลเรียบร้อยแล้ว", "success")
     return redirect(url_for("daily_check_history"))
 
 @app.route("/daily_check_history")
@@ -342,6 +377,7 @@ def daily_check_history():
         error_count=error_count,
         pending_count=pending_count
     )
+
 
 # ---------------------------------
 # RUN
