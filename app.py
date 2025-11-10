@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
-import psycopg2 
+import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import date
 import subprocess
@@ -13,7 +13,6 @@ app.secret_key = "secretkey"
 # DATABASE CONFIG
 # ---------------------------------
 DATABASE_URL = os.environ.get("DATABASE_URL")
-
 if not DATABASE_URL:
     raise ValueError("❌ DATABASE_URL not found. Please set in Render Environment Variables.")
 
@@ -28,6 +27,7 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # ตารางหลักทั้งหมด
     cur.execute("""
         CREATE TABLE IF NOT EXISTS work_logs (
             id SERIAL PRIMARY KEY,
@@ -45,7 +45,8 @@ def init_db():
             item_name TEXT,
             status TEXT,
             remark TEXT,
-            checked_by TEXT
+            checked_by TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
         )
     """)
 
@@ -82,13 +83,21 @@ def init_db():
         )
     """)
 
+    # ตรวจสอบว่ามี created_at ใน daily_checks แล้วหรือยัง
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name='daily_checks' AND column_name='created_at';
+    """)
+    if not cur.fetchone():
+        cur.execute("ALTER TABLE daily_checks ADD COLUMN created_at TIMESTAMP DEFAULT NOW();")
+
     conn.commit()
     conn.close()
 
 init_db()
 
 # ---------------------------------
-# BACKUP FUNCTION (safe mode for Render)
+# BACKUP FUNCTION
 # ---------------------------------
 def auto_backup_db():
     try:
@@ -99,7 +108,7 @@ def auto_backup_db():
 
         if subprocess.call(["which", "pg_dump"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
             subprocess.run(["pg_dump", DATABASE_URL, "-f", backup_file], check=True)
-            print(f"[Auto Backup] สำรองฐานข้อมูลเรียบร้อย -> {backup_file}")
+            print(f"[Auto Backup] ✅ สำรองฐานข้อมูลเรียบร้อย -> {backup_file}")
         else:
             print("[Auto Backup] ⚠️ ข้ามการสำรอง: Render ไม่มี pg_dump")
     except Exception as e:
@@ -125,12 +134,7 @@ def index():
 
     conn.close()
 
-    status_dict = {
-        'done': 'เสร็จสิ้น',
-        'in progress': 'กำลังดำเนินการ',
-        'pending': 'รอดำเนินการ'
-    }
-
+    status_dict = {'done': 'เสร็จสิ้น', 'in progress': 'กำลังดำเนินการ', 'pending': 'รอดำเนินการ'}
     for log in logs:
         log['status_th'] = status_dict.get(log['status'], log['status'])
 
@@ -161,12 +165,12 @@ def add_inventory():
             request.form.get("category"),
             request.form.get("quantity") or 0,
             request.form.get("location"),
-            request.form.get("remark")   # แก้จาก note -> remark
+            request.form.get("remark")
         ))
         conn.commit()
         conn.close()
         auto_backup_db()
-        flash("เพิ่มรายการสำเร็จ", "success")
+        flash("✅ เพิ่มรายการสำเร็จ", "success")
         return redirect(url_for("inventory"))
     return render_template("add_inventory.html")
 
@@ -185,41 +189,9 @@ def add():
         conn.commit()
         conn.close()
         auto_backup_db()
+        flash("✅ เพิ่มงานเรียบร้อยแล้ว", "success")
         return redirect("/")
     return render_template("add.html", today=date.today())
-
-# ---------------------------------
-# แก้ไข / ลบ งาน
-# ---------------------------------
-@app.route("/edit/<int:id>", methods=["GET", "POST"])
-def edit(id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    if request.method == "POST":
-        cur.execute(
-            "UPDATE work_logs SET work_date=%s, category=%s, description=%s, status=%s WHERE id=%s",
-            (request.form["work_date"], request.form["category"], request.form["description"], request.form["status"], id)
-        )
-        conn.commit()
-        conn.close()
-        auto_backup_db()
-        return redirect("/")
-
-    cur.execute("SELECT * FROM work_logs WHERE id=%s", (id,))
-    log = cur.fetchone()
-    conn.close()
-    return render_template("edit.html", log=log)
-
-@app.route("/delete/<int:id>")
-def delete(id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM work_logs WHERE id=%s", (id,))
-    conn.commit()
-    conn.close()
-    auto_backup_db()
-    flash("ลบงานเรียบร้อยแล้ว", "success")
-    return redirect("/")
 
 # ---------------------------------
 # Switch & Cameras
@@ -268,7 +240,7 @@ def add_switch():
         conn.commit()
         conn.close()
         auto_backup_db()
-        flash("เพิ่ม Switch สำเร็จ", "success")
+        flash("✅ เพิ่ม Switch สำเร็จ", "success")
         return redirect(url_for("switches"))
 
     return render_template("add_switch.html")
@@ -285,8 +257,8 @@ def add_daily_check():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by, created_at)
+        VALUES (%s, %s, %s, %s, %s, NOW())
     """, (
         request.form["check_date"],
         request.form["item_name"],
@@ -297,99 +269,29 @@ def add_daily_check():
     conn.commit()
     conn.close()
     auto_backup_db()
-    flash("บันทึกข้อมูลเรียบร้อยแล้ว", "success")
-    return redirect(url_for("daily_check"))
+    flash("✅ บันทึกข้อมูลเรียบร้อยแล้ว", "success")
+    return redirect(url_for("daily_check_history"))
 
-@app.route('/daily_check_history')
+@app.route("/daily_check_history")
 def daily_check_history():
-    # ใช้ get_db_connection แทน hardcode host/password
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM daily_checks ORDER BY check_date DESC, id DESC")
-    checks = cur.fetchall()
+    records = cur.fetchall()
 
-    normal_count = sum(1 for c in checks if c['status'] == 'ปกติ')
-    error_count = sum(1 for c in checks if c['status'] == 'ผิดปกติ')
-    pending_count = sum(1 for c in checks if c['status'] == 'รอตรวจสอบ')
+    normal_count = sum(1 for c in records if c['status'] == 'ปกติ')
+    error_count = sum(1 for c in records if c['status'] == 'ผิดปกติ')
+    pending_count = sum(1 for c in records if c['status'] == 'รอตรวจสอบ')
 
     conn.close()
 
     return render_template(
-        'daily_check_history.html',
-        checks=checks,
+        "daily_check_history.html",
+        records=records,
         normal_count=normal_count,
         error_count=error_count,
         pending_count=pending_count
     )
-
-# ---------------------------------
-# คืนค่าฐานข้อมูลจากไฟล์ล่าสุด
-# ---------------------------------
-@app.route("/admin/restore_latest")
-def restore_latest():
-    try:
-        backup_dir = os.path.join(os.path.dirname(__file__), "backups")
-        files = [f for f in os.listdir(backup_dir) if f.endswith(".sql")]
-        if not files:
-            flash("ไม่พบไฟล์สำรอง", "warning")
-            return redirect("/")
-        latest = max(files)
-        file_path = os.path.join(backup_dir, latest)
-        subprocess.run(["psql", DATABASE_URL, "-f", file_path], check=True)
-        flash(f"คืนค่าฐานข้อมูลจาก {latest} สำเร็จ", "success")
-    except Exception as e:
-        flash(f"เกิดข้อผิดพลาดในการคืนค่า: {e}", "danger")
-    return redirect("/")
-
-# ---------------------------------
-# INSERT AUTO DATA
-# ---------------------------------
-@app.route("/insert_auto_data")
-def insert_auto_data():
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    items = [
-        "ตรวจสอบระบบ Server",
-        "ตรวจสอบกล้อง CCTV",
-        "ตรวจสอบสวิตช์เครือข่าย",
-        "ตรวจสอบเครื่องสำรองไฟ (UPS)",
-        "ตรวจสอบระบบอินเทอร์เน็ต",
-        "ตรวจสอบอุปกรณ์สำนักงาน",
-        "ตรวจสอบเครื่องพิมพ์",
-        "ตรวจสอบระบบแสงสว่าง",
-        "ตรวจสอบอุณหภูมิห้อง Server",
-        "ตรวจสอบระบบ NAS สำรองข้อมูล"
-    ]
-
-    statuses = ["ปกติ", "ผิดปกติ", "รอตรวจสอบ"]
-
-    start_date = datetime.date(2025, 10, 20)
-    end_date = datetime.date(2025, 11, 6)
-    delta = datetime.timedelta(days=1)
-
-    current_date = start_date
-    added_count = 0
-
-    while current_date <= end_date:
-        for item in items:
-            cur.execute("""
-                INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (
-                current_date.strftime("%Y-%m-%d"),
-                item,
-                statuses[added_count % len(statuses)],
-                "ข้อมูลอัตโนมัติ",
-                "System Bot"
-            ))
-            added_count += 1
-        current_date += delta
-
-    conn.commit()
-    conn.close()
-    auto_backup_db()
-    return f"✅ เพิ่มข้อมูลอัตโนมัติแล้วทั้งหมด {added_count} รายการเรียบร้อย!"
 
 # ---------------------------------
 # RUN

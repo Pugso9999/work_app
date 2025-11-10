@@ -63,12 +63,9 @@
           </a>
         </li>
         <li>
-         <li>
           <a href="{{ url_for('daily_check_history') }}" class="nav-link {% if request.endpoint=='daily_check_history' %}active{% endif %}">
             📊 ประวัติการบันทึกประจำวัน 
           </a>
-        </li>
-
         </li>
         <li>
           <a href="{{ url_for('switches') }}" class="nav-link {% if request.endpoint=='switches' %}active{% endif %}">
@@ -84,8 +81,29 @@
     </div>
   </div>
 
+  <!-- Bootstrap + Script -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+  <!-- ✅ SweetAlert2 Popup สำหรับ flash message -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <script>
+        document.addEventListener("DOMContentLoaded", function() {
+          {% for category, message in messages %}
+            Swal.fire({
+              icon: "{{ 'success' if category == 'success' else 'info' }}",
+              title: "{{ message }}",
+              timer: 2000,
+              showConfirmButton: false
+            });
+          {% endfor %}
+        });
+      </script>
+    {% endif %}
+  {% endwith %}
+
 </body>
 </html>
