@@ -27,7 +27,6 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # ตารางหลักทั้งหมด
     cur.execute("""
         CREATE TABLE IF NOT EXISTS work_logs (
             id SERIAL PRIMARY KEY,
@@ -83,7 +82,7 @@ def init_db():
         )
     """)
 
-    # ตรวจสอบว่ามี created_at ใน daily_checks แล้วหรือยัง
+    # ตรวจสอบคอลัมน์ created_at
     cur.execute("""
         SELECT column_name FROM information_schema.columns
         WHERE table_name='daily_checks' AND column_name='created_at';
@@ -94,7 +93,58 @@ def init_db():
     conn.commit()
     conn.close()
 
-init_db()
+# ---------------------------------
+# INSERT AUTO DATA V2
+# ---------------------------------
+def insert_auto_data_v2():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    items = [
+        "ตรวจสอบระบบ Server",
+        "ตรวจสอบเครื่องสำรองไฟ (UPS)",
+        "สำรวจเครื่องชั่งน้ำหนัก",
+        "ตรวจสอบกล้อง CCTV",
+        "สำรวจเครื่อง Cashier",
+        "สำรวจคอมพิวเตอร์ห้องจุดรับสินค้า"
+    ]
+
+    start_date = datetime.date(2025, 10, 20)
+    end_date = datetime.date(2025, 11, 9)
+    delta = datetime.timedelta(days=1)
+
+    current_date = start_date
+    added_count = 0
+
+    while current_date <= end_date:
+        # ข้ามวันพุธ
+        if current_date.weekday() == 2:
+            current_date += delta
+            continue
+
+        for item in items:
+            status = "ปกติ"
+            # วันที่ 26/10/2568 -> Server ผิดปกติ
+            if item == "ตรวจสอบระบบ Server" and current_date == datetime.date(2025, 10, 26):
+                status = "ผิดปกติ"
+
+            cur.execute("""
+                INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                current_date.strftime("%Y-%m-%d"),
+                item,
+                status,
+                "เพิ่มข้อมูลอัตโนมัติ",
+                "System Bot"
+            ))
+            added_count += 1
+
+        current_date += delta
+
+    conn.commit()
+    conn.close()
+    print(f"✅ เพิ่มข้อมูลตรวจสอบอัตโนมัติแล้วทั้งหมด {added_count} รายการเรียบร้อย!")
 
 # ---------------------------------
 # BACKUP FUNCTION
@@ -297,4 +347,6 @@ def daily_check_history():
 # RUN
 # ---------------------------------
 if __name__ == "__main__":
+    init_db()
+    insert_auto_data_v2()  # ✅ เพิ่มข้อมูลอัตโนมัติเมื่อรัน
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
