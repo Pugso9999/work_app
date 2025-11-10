@@ -378,6 +378,31 @@ def daily_check_history():
         pending_count=pending_count
     )
 
+# ลบข้อมูลตรวจสอบประจำวัน
+@app.route("/delete_daily_check/<int:id>")
+def delete_daily_check(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM daily_checks WHERE id=%s", (id,))
+    conn.commit()
+    conn.close()
+    auto_backup_db()
+    flash("✅ ลบข้อมูลเรียบร้อยแล้ว", "success")
+    return redirect(url_for("daily_check_history"))
+
+# AJAX ลบข้อมูลตรวจสอบประจำวัน
+@app.route("/delete_daily_check_ajax/<int:id>", methods=["POST"])
+def delete_daily_check_ajax(id):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM daily_checks WHERE id=%s", (id,))
+        conn.commit()
+        conn.close()
+        auto_backup_db()
+        return {"success": True, "message": "✅ ลบข้อมูลเรียบร้อยแล้ว"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
 
 # ---------------------------------
 # RUN

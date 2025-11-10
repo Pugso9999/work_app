@@ -12,20 +12,40 @@
         <th>หมายเหตุ</th>
         <th>ตรวจโดย</th>
         <th>วันที่บันทึก</th>
+        <th>จัดการ</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="dailyCheckTable">
       {% for row in records %}
-      <tr>
+      <tr id="row-{{ row.id }}">
         <td>{{ row.check_date }}</td>
         <td>{{ row.item_name }}</td>
         <td>{{ row.status }}</td>
         <td>{{ row.remark }}</td>
         <td>{{ row.checked_by }}</td>
         <td>{{ row.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        <td>
+          <button class="btn btn-sm btn-danger" onclick="deleteRow({{ row.id }})">ลบ</button>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+function deleteRow(id){
+    if(confirm("คุณต้องการลบข้อมูลนี้หรือไม่?")){
+        $.post("/delete_daily_check_ajax/" + id, function(res){
+            if(res.success){
+                $("#row-" + id).remove();
+                alert(res.message);
+            } else {
+                alert("❌ เกิดข้อผิดพลาด: " + res.message);
+            }
+        });
+    }
+}
+</script>
 {% endblock %}
