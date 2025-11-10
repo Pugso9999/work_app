@@ -82,14 +82,6 @@ def init_db():
         )
     """)
 
-    # ตรวจสอบคอลัมน์ created_at
-    cur.execute("""
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name='daily_checks' AND column_name='created_at';
-    """)
-    if not cur.fetchone():
-        cur.execute("ALTER TABLE daily_checks ADD COLUMN created_at TIMESTAMP DEFAULT NOW();")
-
     conn.commit()
     conn.close()
 
@@ -124,7 +116,6 @@ def insert_auto_data_v2():
 
         for item in items:
             status = "ปกติ"
-            # วันที่ 26/10/2568 -> Server ผิดปกติ
             if item == "ตรวจสอบระบบ Server" and current_date == datetime.date(2025, 10, 26):
                 status = "ผิดปกติ"
 
@@ -165,7 +156,7 @@ def auto_backup_db():
         print(f"[Auto Backup Error] {e}")
 
 # ---------------------------------
-# หน้าแรก
+# หน้าแรก (Dashboard)
 # ---------------------------------
 @app.route("/")
 def index():
@@ -243,6 +234,40 @@ def add():
         return redirect("/")
     return render_template("add.html", today=date.today())
 
+# ลบงาน
+@app.route("/delete/<int:id>")
+def delete(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM work_logs WHERE id=%s", (id,))
+    conn.commit()
+    conn.close()
+    auto_backup_db()
+    flash("✅ ลบงานเรียบร้อยแล้ว", "success")
+    return redirect("/")
+
+# แก้ไขงาน
+@app.route("/edit/<int:id>", methods=["GET", "POST"])
+def edit(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if request.method == "POST":
+        cur.execute(
+            "UPDATE work_logs SET work_date=%s, category=%s, description=%s, status=%s WHERE id=%s",
+            (request.form["work_date"], request.form["category"], request.form["description"], request.form["status"], id)
+        )
+        conn.commit()
+        conn.close()
+        auto_backup_db()
+        flash("✅ แก้ไขงานเรียบร้อยแล้ว", "success")
+        return redirect("/")
+    
+    cur.execute("SELECT * FROM work_logs WHERE id=%s", (id,))
+    log = cur.fetchone()
+    conn.close()
+    return render_template("edit.html", log=log)
+
+
 # ---------------------------------
 # Switch & Cameras
 # ---------------------------------
@@ -296,13 +321,12 @@ def add_switch():
     return render_template("add_switch.html")
 
 # ---------------------------------
-# ตรวจสอบประจำวัน
+# Daily Check
 # ---------------------------------
 @app.route("/daily_check")
 def daily_check():
     conn = get_db_connection()
     cur = conn.cursor()
-    # ดึงสถิติสำหรับ Pie chart
     cur.execute("SELECT status, COUNT(*) AS count FROM daily_checks GROUP BY status")
     stats = cur.fetchall()
     conn.close()
@@ -311,6 +335,7 @@ def daily_check():
     data = [s['count'] for s in stats]
 
     return render_template("daily_check.html", labels=labels, data=data)
+
 @app.route("/daily_check_stats_json")
 def daily_check_stats_json():
     conn = get_db_connection()
@@ -335,7 +360,7 @@ def add_daily_check():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # ตรวจสอบข้อมูลซ้ำ
+    # ป้องกันข้อมูลซ้ำ
     cur.execute("""
         SELECT * FROM daily_checks
         WHERE check_date=%s AND item_name=%s
@@ -346,7 +371,6 @@ def add_daily_check():
         conn.close()
         return redirect(url_for("daily_check"))
 
-    # เพิ่มข้อมูลใหม่
     cur.execute("""
         INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by, created_at)
         VALUES (%s, %s, %s, %s, %s, NOW())
@@ -363,22 +387,11 @@ def daily_check_history():
     cur = conn.cursor()
     cur.execute("SELECT * FROM daily_checks ORDER BY check_date DESC, id DESC")
     records = cur.fetchall()
-
-    normal_count = sum(1 for c in records if c['status'] == 'ปกติ')
-    error_count = sum(1 for c in records if c['status'] == 'ผิดปกติ')
-    pending_count = sum(1 for c in records if c['status'] == 'รอตรวจสอบ')
-
     conn.close()
 
-    return render_template(
-        "daily_check_history.html",
-        records=records,
-        normal_count=normal_count,
-        error_count=error_count,
-        pending_count=pending_count
-    )
+    return render_template("daily_check_history.html", records=records)
 
-# ลบข้อมูลตรวจสอบประจำวัน
+# ลบ Daily Check
 @app.route("/delete_daily_check/<int:id>")
 def delete_daily_check(id):
     conn = get_db_connection()
@@ -390,7 +403,7 @@ def delete_daily_check(id):
     flash("✅ ลบข้อมูลเรียบร้อยแล้ว", "success")
     return redirect(url_for("daily_check_history"))
 
-# AJAX ลบข้อมูลตรวจสอบประจำวัน
+# AJAX ลบ Daily Check
 @app.route("/delete_daily_check_ajax/<int:id>", methods=["POST"])
 def delete_daily_check_ajax(id):
     try:
@@ -409,5 +422,5 @@ def delete_daily_check_ajax(id):
 # ---------------------------------
 if __name__ == "__main__":
     init_db()
-    insert_auto_data_v2()  # ✅ เพิ่มข้อมูลอัตโนมัติเมื่อรัน
+    insert_auto_data_v2()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)

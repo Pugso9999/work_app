@@ -111,11 +111,13 @@
           <td class="text-center">
             <div class="d-flex justify-content-center gap-2 flex-nowrap">
               <a href="/edit/{{ log['id'] }}" class="btn btn-sm btn-outline-warning">
-                <i class="bi bi-pencil"></i>
-              </a>
-              <a href="/delete/{{ log['id'] }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('คุณแน่ใจหรือไม่?')">
-                <i class="bi bi-trash"></i>
-              </a>
+          <i class="bi bi-pencil"></i>
+          </a>
+            <a href="/delete/{{ log['id'] }}" class="btn btn-sm btn-outline-danger"
+                onclick="return confirm('คุณแน่ใจหรือไม่?')">
+            <i class="bi bi-trash"></i>
+          </a>
+
             </div>
           </td>
         </tr>
