@@ -88,8 +88,10 @@
         <tr>
           <th><i class="bi bi-calendar-date"></i> วันที่</th>
           <th><i class="bi bi-tag"></i> ประเภท</th>
+          <th><i class="bi bi-tag"></i> สาขา</th>
           <th><i class="bi bi-journal-text"></i> รายละเอียด</th>
           <th><i class="bi bi-hourglass-split"></i> สถานะ</th>
+          <th><i class="bi bi-person"></i> ผู้มอบหมายงาน</th>
           <th><i class="bi bi-gear"></i> จัดการ</th>
         </tr>
       </thead>
@@ -98,6 +100,7 @@
         <tr>
           <td class="text-nowrap text-center">{{ log['work_date'] }}</td>
           <td>{{ log['category'] }}</td>
+          <td>{{ log['branch'] or '' }}</td>
           <td>{{ log['description'] }}</td>
           <td class="text-center">
             {% if log['status'] == 'done' %}
@@ -108,16 +111,16 @@
               <span class="badge bg-danger">รอดำเนินการ</span>
             {% endif %}
           </td>
+          <td>{{ log['assigned_by'] or '' }}</td>
           <td class="text-center">
             <div class="d-flex justify-content-center gap-2 flex-nowrap">
               <a href="/edit/{{ log['id'] }}" class="btn btn-sm btn-outline-warning">
-          <i class="bi bi-pencil"></i>
-          </a>
-            <a href="/delete/{{ log['id'] }}" class="btn btn-sm btn-outline-danger"
-                onclick="return confirm('คุณแน่ใจหรือไม่?')">
-            <i class="bi bi-trash"></i>
-          </a>
-
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="/delete/{{ log['id'] }}" class="btn btn-sm btn-outline-danger"
+                 onclick="return confirm('คุณแน่ใจหรือไม่?')">
+                <i class="bi bi-trash"></i>
+              </a>
             </div>
           </td>
         </tr>

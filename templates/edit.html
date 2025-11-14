@@ -5,29 +5,37 @@
   <form method="POST">
     <div class="mb-3">
       <label for="work_date" class="form-label">วันที่</label>
-      <input type="date" class="form-control" name="work_date" value="{{ log.work_date }}" required>
+      <input type="date" class="form-control" id="work_date" name="work_date" value="{{ log['work_date'] }}" required>
     </div>
     <div class="mb-3">
       <label for="category" class="form-label">หมวดหมู่</label>
       <select class="form-select" name="category">
-        <option value="Hardware" {% if log.category=='Hardware' %}selected{% endif %}>Hardware</option>
-        <option value="Software" {% if log.category=='Software' %}selected{% endif %}>Software</option>
-        <option value="General" {% if log.category=='General' %}selected{% endif %}>General</option>
-        <option value="Configuration,System" {% if log.category=='Configuration,System' %}selected{% endif %}>Configuration,System</option>
-        <option value="Troubleshoot" {% if log.category=='Troubleshoot' %}selected{% endif %}>Troubleshoot</option>
+        <option value="Hardware" {% if log['category']=='Hardware' %}selected{% endif %}>Hardware</option>
+        <option value="Software" {% if log['category']=='Software' %}selected{% endif %}>Software</option>
+        <option value="General" {% if log['category']=='General' %}selected{% endif %}>General</option>
+        <option value="Configuration,System" {% if log['category']=='Configuration,System' %}selected{% endif %}>Configuration,System</option>
+        <option value="Troubleshoot" {% if log['category']=='Troubleshoot' %}selected{% endif %}>Troubleshoot</option>
       </select>
     </div>
     <div class="mb-3">
       <label for="description" class="form-label">รายละเอียด</label>
-      <textarea class="form-control" name="description" rows="3" required>{{ log.description }}</textarea>
+      <textarea class="form-control" name="description" rows="3" required>{{ log['description'] }}</textarea>
     </div>
     <div class="mb-3">
       <label for="status" class="form-label">สถานะ</label>
       <select class="form-select" name="status">
-        <option value="done" {% if log.status=='done' %}selected{% endif %}>เสร็จแล้ว</option>
-        <option value="in progress" {% if log.status=='in progress' %}selected{% endif %}>กำลังทำ</option>
-        <option value="pending" {% if log.status=='pending' %}selected{% endif %}>รอดำเนินการ</option>
+        <option value="done" {% if log['status']=='done' %}selected{% endif %}>เสร็จแล้ว</option>
+        <option value="in progress" {% if log['status']=='in progress' %}selected{% endif %}>กำลังทำ</option>
+        <option value="pending" {% if log['status']=='pending' %}selected{% endif %}>รอดำเนินการ</option>
       </select>
+    </div>
+    <div class="mb-3">
+      <label for="branch" class="form-label">สาขา</label>
+      <input type="text" class="form-control" name="branch" id="branch" value="{{ log['branch'] or '' }}">
+    </div>
+    <div class="mb-3">
+      <label for="assigned_by" class="form-label">ผู้มอบหมายงาน</label>
+      <input type="text" class="form-control" name="assigned_by" id="assigned_by" value="{{ log['assigned_by'] or '' }}">
     </div>
     <button type="submit" class="btn btn-primary">บันทึก</button>
     <a href="/" class="btn btn-secondary">ยกเลิก</a>
