@@ -21,13 +21,12 @@ def get_db_connection():
     return conn
 
 # ---------------------------------
-# INITIALIZE TABLES (SAFE: do not delete data)
+# INITIALIZE TABLES
 # ---------------------------------
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # create base table if not exists (keeps existing data)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS work_logs (
             id SERIAL PRIMARY KEY,
@@ -38,95 +37,28 @@ def init_db():
         )
     """)
 
-    # Add new columns branch and assigned_by safely if they don't exist
-    cur.execute("""
-    DO $$
-    BEGIN
-        IF NOT EXISTS (
-            SELECT 1 FROM information_schema.columns
-            WHERE table_name='work_logs' AND column_name='branch'
-        ) THEN
-            ALTER TABLE work_logs ADD COLUMN branch TEXT;
-        END IF;
-        IF NOT EXISTS (
-            SELECT 1 FROM information_schema.columns
-            WHERE table_name='work_logs' AND column_name='assigned_by'
-        ) THEN
-            ALTER TABLE work_logs ADD COLUMN assigned_by TEXT;
-        END IF;
-    END
-    $$;
-    """)
+    # เพิ่ม column ใหม่ (ไม่ลบข้อมูลเดิม)
+    try:
+        cur.execute("ALTER TABLE work_logs ADD COLUMN branch TEXT")
+    except:
+        pass
 
-    # other tables (unchanged)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS daily_checks (
-            id SERIAL PRIMARY KEY,
-            check_date TEXT,
-            item_name TEXT,
-            status TEXT,
-            remark TEXT,
-            checked_by TEXT,
-            created_at TIMESTAMP DEFAULT NOW()
-        )
-    """)
+    try:
+        cur.execute("ALTER TABLE work_logs ADD COLUMN assigned_by TEXT")
+    except:
+        pass
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS inventory (
-            id SERIAL PRIMARY KEY,
-            item_name TEXT NOT NULL,
-            category TEXT,
-            quantity INTEGER DEFAULT 0,
-            location TEXT,
-            remark TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS switches (
-            id SERIAL PRIMARY KEY,
-            name TEXT,
-            ip TEXT,
-            model TEXT,
-            ports INTEGER,
-            location TEXT,
-            status TEXT,
-            remark TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS cameras (
-            id SERIAL PRIMARY KEY,
-            switch_id INTEGER REFERENCES switches(id) ON DELETE CASCADE,
-            name TEXT,
-            ip TEXT
-        )
-    """)
-
+    ...
     conn.commit()
     conn.close()
 
+
 # ---------------------------------
-# INSERT AUTO DATA V2 (SAFE: insert only if daily_checks empty)
+# INSERT AUTO DATA V2
 # ---------------------------------
 def insert_auto_data_v2():
     conn = get_db_connection()
     cur = conn.cursor()
-
-    # If data already exists in daily_checks, skip to avoid duplicates
-    cur.execute("SELECT COUNT(*) AS cnt FROM daily_checks")
-    existing = cur.fetchone()
-    try:
-        existing_count = existing['cnt']
-    except Exception:
-        # fallback if different cursor result shape
-        existing_count = existing[0] if existing else 0
-
-    if existing_count and existing_count > 0:
-        conn.close()
-        print("⏩ insert_auto_data_v2: Skipped because daily_checks already has data.")
-        return
 
     items = [
         "ตรวจสอบระบบ Server",
@@ -199,8 +131,7 @@ def index():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # select branch and assigned_by so templates can render them
-    cur.execute("SELECT id, work_date, category, description, status, branch, assigned_by FROM work_logs ORDER BY work_date::date DESC, id DESC")
+    cur.execute("SELECT id, work_date, category, description, status FROM work_logs ORDER BY work_date::date DESC, id DESC")
     logs = cur.fetchall()
 
     cur.execute("SELECT COUNT(*) FROM work_logs WHERE status='done'")
@@ -260,17 +191,9 @@ def add():
     if request.method == "POST":
         conn = get_db_connection()
         cur = conn.cursor()
-        # insert with branch and assigned_by (values may be None for old clients)
         cur.execute(
-            "INSERT INTO work_logs (work_date, category, description, status, branch, assigned_by) VALUES (%s, %s, %s, %s, %s, %s)",
-            (
-                request.form["work_date"],
-                request.form["category"],
-                request.form["description"],
-                request.form["status"],
-                request.form.get("branch"),
-                request.form.get("assigned_by")
-            )
+            "INSERT INTO work_logs (work_date, category, description, status) VALUES (%s, %s, %s, %s)",
+            (request.form["work_date"], request.form["category"], request.form["description"], request.form["status"])
         )
         conn.commit()
         conn.close()
@@ -298,8 +221,8 @@ def edit(id):
     cur = conn.cursor()
     if request.method == "POST":
         cur.execute(
-            "UPDATE work_logs SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s WHERE id=%s",
-            (request.form["work_date"], request.form["category"], request.form["description"], request.form["status"], request.form.get("branch"), request.form.get("assigned_by"), id)
+            "UPDATE work_logs SET work_date=%s, category=%s, description=%s, status=%s WHERE id=%s",
+            (request.form["work_date"], request.form["category"], request.form["description"], request.form["status"], id)
         )
         conn.commit()
         conn.close()
@@ -466,8 +389,6 @@ def delete_daily_check_ajax(id):
 # RUN
 # ---------------------------------
 if __name__ == "__main__":
-    # init_db is safe and will NOT delete existing data.
     init_db()
-    # insert_auto_data_v2 will only insert if daily_checks is empty (prevents duplicates).
     insert_auto_data_v2()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
