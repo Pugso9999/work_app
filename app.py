@@ -152,9 +152,15 @@ def index():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT id, work_date, category, description, status FROM work_logs ORDER BY work_date::date DESC, id DESC")
+    # ดึง branch และ assigned_by ด้วย
+    cur.execute("""
+        SELECT id, work_date, category, description, status, branch, assigned_by
+        FROM work_logs
+        ORDER BY work_date::date DESC, id DESC
+    """)
     logs = cur.fetchall()
 
+    # Summary
     cur.execute("SELECT COUNT(*) FROM work_logs WHERE status='done'")
     done = cur.fetchone()['count']
     cur.execute("SELECT COUNT(*) FROM work_logs WHERE status='in progress'")
@@ -164,11 +170,13 @@ def index():
 
     conn.close()
 
+    # แปลสถานะเป็นไทย
     status_dict = {'done': 'เสร็จสิ้น', 'in progress': 'กำลังดำเนินการ', 'pending': 'รอดำเนินการ'}
     for log in logs:
         log['status_th'] = status_dict.get(log['status'], log['status'])
 
     return render_template("index.html", logs=logs, done=done, in_progress=in_progress, pending=pending)
+
 
 # ---------------------------------
 # Inventory
