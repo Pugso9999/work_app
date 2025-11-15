@@ -40,13 +40,14 @@ def init_db():
     # เพิ่ม column ใหม่ (ไม่ลบข้อมูลเดิม)
     try:
         cur.execute("ALTER TABLE work_logs ADD COLUMN branch TEXT")
-    except:
+    except psycopg2.errors.DuplicateColumn:
         pass
 
     try:
         cur.execute("ALTER TABLE work_logs ADD COLUMN assigned_by TEXT")
-    except:
+    except psycopg2.errors.DuplicateColumn:
         pass
+
 
     ...
     conn.commit()
