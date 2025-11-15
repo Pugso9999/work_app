@@ -27,6 +27,7 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # สร้างตาราง work_logs
     cur.execute("""
         CREATE TABLE IF NOT EXISTS work_logs (
             id SERIAL PRIMARY KEY,
@@ -37,20 +38,39 @@ def init_db():
         )
     """)
 
-    # เพิ่ม column ใหม่ (ไม่ลบข้อมูลเดิม)
+    # เพิ่ม column branch
     try:
         cur.execute("ALTER TABLE work_logs ADD COLUMN branch TEXT")
+        conn.commit()  # commit ถ้าเพิ่มสำเร็จ
     except psycopg2.errors.DuplicateColumn:
-        pass
+        conn.rollback()  # rollback ถ้า column มีอยู่แล้ว
 
+    # เพิ่ม column assigned_by
     try:
         cur.execute("ALTER TABLE work_logs ADD COLUMN assigned_by TEXT")
+        conn.commit()
     except psycopg2.errors.DuplicateColumn:
-        pass
+        conn.rollback()
 
+    # สร้างตาราง daily_checks
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS daily_checks (
+            id SERIAL PRIMARY KEY,
+            check_date TEXT,
+            item_name TEXT,
+            status TEXT,
+            remark TEXT,
+            checked_by TEXT
+        )
+    """)
 
-    ...
-    conn.commit()
+    # เพิ่ม column created_at
+    try:
+        cur.execute("ALTER TABLE daily_checks ADD COLUMN created_at TIMESTAMP DEFAULT NOW()")
+        conn.commit()
+    except psycopg2.errors.DuplicateColumn:
+        conn.rollback()
+
     conn.close()
 
 
