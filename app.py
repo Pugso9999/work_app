@@ -192,8 +192,15 @@ def add():
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO work_logs (work_date, category, description, status) VALUES (%s, %s, %s, %s)",
-            (request.form["work_date"], request.form["category"], request.form["description"], request.form["status"])
+            "INSERT INTO work_logs (work_date, category, description, status, branch, assigned_by) VALUES (%s, %s, %s, %s, %s, %s)",
+            (
+                request.form["work_date"],
+                request.form["category"],
+                request.form["description"],
+                request.form["status"],
+                request.form.get("branch"),
+                request.form.get("assigned_by")
+            )
         )
         conn.commit()
         conn.close()
@@ -221,9 +228,18 @@ def edit(id):
     cur = conn.cursor()
     if request.method == "POST":
         cur.execute(
-            "UPDATE work_logs SET work_date=%s, category=%s, description=%s, status=%s WHERE id=%s",
-            (request.form["work_date"], request.form["category"], request.form["description"], request.form["status"], id)
-        )
+    "UPDATE work_logs SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s WHERE id=%s",
+    (
+        request.form["work_date"],
+        request.form["category"],
+        request.form["description"],
+        request.form["status"],
+        request.form.get("branch"),
+        request.form.get("assigned_by"),
+        id
+    )
+)
+
         conn.commit()
         conn.close()
         auto_backup_db()
