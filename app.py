@@ -38,27 +38,18 @@ def init_db():
         )
     """)
 
-    # เพิ่ม column branch
-    try:
-        cur.execute("ALTER TABLE work_logs ADD COLUMN branch TEXT")
-        conn.commit()
-    except psycopg2.errors.DuplicateColumn:
-        conn.rollback()
+    # เพิ่ม column branch, assigned_by, updated_at แบบปลอดภัย
+    for col, sql in [
+        ("branch", "ALTER TABLE work_logs ADD COLUMN branch TEXT"),
+        ("assigned_by", "ALTER TABLE work_logs ADD COLUMN assigned_by TEXT"),
+        ("updated_at", "ALTER TABLE work_logs ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()")
+    ]:
+        try:
+            cur.execute(sql)
+            conn.commit()
+        except psycopg2.errors.DuplicateColumn:
+            conn.rollback()
 
-    # เพิ่ม column assigned_by
-    try:
-        cur.execute("ALTER TABLE work_logs ADD COLUMN assigned_by TEXT")
-        conn.commit()
-    except psycopg2.errors.DuplicateColumn:
-        conn.rollback()
-
-    # เพิ่ม column updated_at
-    try:
-        cur.execute("ALTER TABLE work_logs ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()")
-        conn.commit()
-    except psycopg2.errors.DuplicateColumn:
-        conn.rollback()
-    
     # สร้างตาราง daily_checks
     cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_checks (
@@ -79,7 +70,6 @@ def init_db():
         conn.rollback()
 
     conn.close()
-
 
 # ---------------------------------
 # INSERT AUTO DATA V2
@@ -133,7 +123,6 @@ def insert_auto_data_v2():
     conn.close()
     print(f"✅ เพิ่มข้อมูลตรวจสอบอัตโนมัติแล้วทั้งหมด {added_count} รายการเรียบร้อย!")
 
-
 # ---------------------------------
 # BACKUP FUNCTION
 # ---------------------------------
@@ -151,7 +140,6 @@ def auto_backup_db():
             print("[Auto Backup] ⚠️ ข้ามการสำรอง: Render ไม่มี pg_dump")
     except Exception as e:
         print(f"[Auto Backup Error] {e}")
-
 
 # ---------------------------------
 # หน้าแรก (Dashboard)
@@ -187,7 +175,6 @@ def index():
 
     return render_template("index.html", logs=logs, done=done, in_progress=in_progress, pending=pending, now=now)
 
-
 # ---------------------------------
 # Inventory
 # ---------------------------------
@@ -199,7 +186,6 @@ def inventory():
     items = cur.fetchall()
     conn.close()
     return render_template("inventory.html", items=items)
-
 
 @app.route("/add_inventory", methods=["GET", "POST"])
 def add_inventory():
@@ -222,7 +208,6 @@ def add_inventory():
         flash("✅ เพิ่มรายการสำเร็จ", "success")
         return redirect(url_for("inventory"))
     return render_template("add_inventory.html")
-
 
 # ---------------------------------
 # เพิ่มงาน
@@ -250,7 +235,6 @@ def add():
         return redirect("/")
     return render_template("add.html", today=date.today())
 
-
 # ---------------------------------
 # ลบงาน
 # ---------------------------------
@@ -264,7 +248,6 @@ def delete(id):
     auto_backup_db()
     flash("✅ ลบงานเรียบร้อยแล้ว", "success")
     return redirect("/")
-
 
 # ---------------------------------
 # แก้ไขงาน
@@ -291,12 +274,11 @@ def edit(id):
         auto_backup_db()
         flash("✅ แก้ไขงานเรียบร้อยแล้ว", "success")
         return redirect("/")
-    
+
     cur.execute("SELECT * FROM work_logs WHERE id=%s", (id,))
     log = cur.fetchone()
     conn.close()
     return render_template("edit.html", log=log)
-
 
 # ---------------------------------
 # Switch & Cameras
@@ -316,7 +298,6 @@ def switches():
 
     conn.close()
     return render_template("switches.html", switches=switches, camera_dict=camera_dict)
-
 
 @app.route("/add_switch", methods=["GET", "POST"])
 def add_switch():
@@ -351,7 +332,6 @@ def add_switch():
 
     return render_template("add_switch.html")
 
-
 # ---------------------------------
 # Daily Check
 # ---------------------------------
@@ -368,7 +348,6 @@ def daily_check():
 
     return render_template("daily_check.html", labels=labels, data=data)
 
-
 @app.route("/daily_check_stats_json")
 def daily_check_stats_json():
     conn = get_db_connection()
@@ -381,7 +360,6 @@ def daily_check_stats_json():
     data = [s['count'] for s in stats]
 
     return {"labels": labels, "data": data}
-
 
 @app.route("/add_daily_check", methods=["POST"])
 def add_daily_check():
@@ -415,7 +393,6 @@ def add_daily_check():
     flash(f"✅ บันทึกข้อมูลเรียบร้อยแล้ว", "success")
     return redirect(url_for("daily_check_history"))
 
-
 @app.route("/daily_check_history")
 def daily_check_history():
     conn = get_db_connection()
@@ -425,7 +402,6 @@ def daily_check_history():
     conn.close()
 
     return render_template("daily_check_history.html", records=records)
-
 
 # ลบ Daily Check
 @app.route("/delete_daily_check/<int:id>")
@@ -438,7 +414,6 @@ def delete_daily_check(id):
     auto_backup_db()
     flash("✅ ลบข้อมูลเรียบร้อยแล้ว", "success")
     return redirect(url_for("daily_check_history"))
-
 
 # AJAX ลบ Daily Check
 @app.route("/delete_daily_check_ajax/<int:id>", methods=["POST"])
@@ -453,7 +428,6 @@ def delete_daily_check_ajax(id):
         return {"success": True, "message": "✅ ลบข้อมูลเรียบร้อยแล้ว"}
     except Exception as e:
         return {"success": False, "message": str(e)}
-
 
 # ---------------------------------
 # RUN
