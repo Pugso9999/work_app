@@ -1,9 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from datetime import date
+from datetime import date, datetime, timedelta
 import subprocess
-import datetime
 import os
 
 app = Flask(__name__)
@@ -27,7 +26,7 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # สร้างตาราง work_logs
+    # ตาราง work_logs
     cur.execute("""
         CREATE TABLE IF NOT EXISTS work_logs (
             id SERIAL PRIMARY KEY,
@@ -38,11 +37,12 @@ def init_db():
         )
     """)
 
-    # เพิ่ม column branch, assigned_by, updated_at แบบปลอดภัย
+    # เพิ่ม column branch, assigned_by, updated_at, created_at
     for col, sql in [
         ("branch", "ALTER TABLE work_logs ADD COLUMN branch TEXT"),
         ("assigned_by", "ALTER TABLE work_logs ADD COLUMN assigned_by TEXT"),
-        ("updated_at", "ALTER TABLE work_logs ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()")
+        ("updated_at", "ALTER TABLE work_logs ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()"),
+        ("created_at", "ALTER TABLE work_logs ADD COLUMN created_at TIMESTAMP DEFAULT NOW()")
     ]:
         try:
             cur.execute(sql)
@@ -50,7 +50,7 @@ def init_db():
         except psycopg2.errors.DuplicateColumn:
             conn.rollback()
 
-    # สร้างตาราง daily_checks
+    # ตาราง daily_checks
     cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_checks (
             id SERIAL PRIMARY KEY,
@@ -61,7 +61,6 @@ def init_db():
             checked_by TEXT
         )
     """)
-
     # เพิ่ม column created_at
     try:
         cur.execute("ALTER TABLE daily_checks ADD COLUMN created_at TIMESTAMP DEFAULT NOW()")
@@ -89,7 +88,7 @@ def insert_auto_data_v2():
 
     start_date = datetime.date(2025, 10, 20)
     end_date = datetime.date(2025, 11, 9)
-    delta = datetime.timedelta(days=1)
+    delta = timedelta(days=1)
 
     current_date = start_date
     added_count = 0
@@ -106,8 +105,8 @@ def insert_auto_data_v2():
                 status = "ผิดปกติ"
 
             cur.execute("""
-                INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by, created_at)
+                VALUES (%s, %s, %s, %s, %s, NOW())
             """, (
                 current_date.strftime("%Y-%m-%d"),
                 item,
@@ -130,7 +129,7 @@ def auto_backup_db():
     try:
         backup_dir = os.path.join(os.path.dirname(__file__), "backups")
         os.makedirs(backup_dir, exist_ok=True)
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_file = os.path.join(backup_dir, f"backup_{timestamp}.sql")
 
         if subprocess.call(["which", "pg_dump"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
@@ -150,7 +149,7 @@ def index():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT id, work_date, category, description, status, branch, assigned_by, updated_at
+        SELECT id, work_date, category, description, status, branch, assigned_by, updated_at, created_at
         FROM work_logs
         ORDER BY work_date::date DESC, id DESC
     """)
@@ -166,13 +165,11 @@ def index():
 
     conn.close()
 
-    # แปลสถานะเป็นไทย
     status_dict = {'done': 'เสร็จสิ้น', 'in progress': 'กำลังดำเนินการ', 'pending': 'รอดำเนินการ'}
     for log in logs:
         log['status_th'] = status_dict.get(log['status'], log['status'])
 
-    now = datetime.datetime.now()
-
+    now = datetime.now()
     return render_template("index.html", logs=logs, done=done, in_progress=in_progress, pending=pending, now=now)
 
 # ---------------------------------
@@ -217,23 +214,55 @@ def add():
     if request.method == "POST":
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO work_logs (work_date, category, description, status, branch, assigned_by, updated_at) VALUES (%s, %s, %s, %s, %s, %s, NOW())",
-            (
-                request.form["work_date"],
-                request.form["category"],
-                request.form["description"],
-                request.form["status"],
-                request.form.get("branch"),
-                request.form.get("assigned_by")
-            )
-        )
+        cur.execute("""
+            INSERT INTO work_logs (work_date, category, description, status, branch, assigned_by, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+        """, (
+            request.form["work_date"],
+            request.form["category"],
+            request.form["description"],
+            request.form["status"],
+            request.form.get("branch"),
+            request.form.get("assigned_by")
+        ))
         conn.commit()
         conn.close()
         auto_backup_db()
         flash("✅ เพิ่มงานเรียบร้อยแล้ว", "success")
         return redirect("/")
     return render_template("add.html", today=date.today())
+
+# ---------------------------------
+# แก้ไขงาน
+# ---------------------------------
+@app.route("/edit/<int:id>", methods=["GET", "POST"])
+def edit(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if request.method == "POST":
+        cur.execute("""
+            UPDATE work_logs
+            SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s, updated_at=NOW()
+            WHERE id=%s
+        """, (
+            request.form["work_date"],
+            request.form["category"],
+            request.form["description"],
+            request.form["status"],
+            request.form.get("branch"),
+            request.form.get("assigned_by"),
+            id
+        ))
+        conn.commit()
+        conn.close()
+        auto_backup_db()
+        flash("✅ แก้ไขงานเรียบร้อยแล้ว", "success")
+        return redirect("/")
+
+    cur.execute("SELECT * FROM work_logs WHERE id=%s", (id,))
+    log = cur.fetchone()
+    conn.close()
+    return render_template("edit.html", log=log)
 
 # ---------------------------------
 # ลบงาน
@@ -248,37 +277,6 @@ def delete(id):
     auto_backup_db()
     flash("✅ ลบงานเรียบร้อยแล้ว", "success")
     return redirect("/")
-
-# ---------------------------------
-# แก้ไขงาน
-# ---------------------------------
-@app.route("/edit/<int:id>", methods=["GET", "POST"])
-def edit(id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    if request.method == "POST":
-        cur.execute(
-            "UPDATE work_logs SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s, updated_at=NOW() WHERE id=%s",
-            (
-                request.form["work_date"],
-                request.form["category"],
-                request.form["description"],
-                request.form["status"],
-                request.form.get("branch"),
-                request.form.get("assigned_by"),
-                id
-            )
-        )
-        conn.commit()
-        conn.close()
-        auto_backup_db()
-        flash("✅ แก้ไขงานเรียบร้อยแล้ว", "success")
-        return redirect("/")
-
-    cur.execute("SELECT * FROM work_logs WHERE id=%s", (id,))
-    log = cur.fetchone()
-    conn.close()
-    return render_template("edit.html", log=log)
 
 # ---------------------------------
 # Switch & Cameras
