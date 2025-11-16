@@ -37,17 +37,18 @@ def init_db():
         )
     """)
 
-    # เพิ่ม column ใหม่ (ไม่ลบข้อมูลเดิม)
-    for sql in [
-        "ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS branch TEXT",
-        "ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS assigned_by TEXT",
-        "ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
-        "ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()"
+    # เพิ่ม column branch, assigned_by, updated_at, created_at
+    for col, sql in [
+        ("branch", "ALTER TABLE work_logs ADD COLUMN branch TEXT"),
+        ("assigned_by", "ALTER TABLE work_logs ADD COLUMN assigned_by TEXT"),
+        ("updated_at", "ALTER TABLE work_logs ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()"),
+        ("created_at", "ALTER TABLE work_logs ADD COLUMN created_at TIMESTAMP DEFAULT NOW()")
     ]:
         try:
             cur.execute(sql)
-        except Exception:
-            pass
+            conn.commit()
+        except psycopg2.errors.DuplicateColumn:
+            conn.rollback()
 
     # ตาราง daily_checks
     cur.execute("""
@@ -60,12 +61,13 @@ def init_db():
             checked_by TEXT
         )
     """)
+    # เพิ่ม column created_at
     try:
-        cur.execute("ALTER TABLE daily_checks ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()")
-    except Exception:
-        pass
+        cur.execute("ALTER TABLE daily_checks ADD COLUMN created_at TIMESTAMP DEFAULT NOW()")
+        conn.commit()
+    except psycopg2.errors.DuplicateColumn:
+        conn.rollback()
 
-    conn.commit()
     conn.close()
 
 # ---------------------------------
@@ -74,6 +76,7 @@ def init_db():
 def insert_auto_data_v2():
     conn = get_db_connection()
     cur = conn.cursor()
+
     items = [
         "ตรวจสอบระบบ Server",
         "ตรวจสอบเครื่องสำรองไฟ (UPS)",
@@ -82,25 +85,37 @@ def insert_auto_data_v2():
         "สำรวจเครื่อง Cashier",
         "สำรวจคอมพิวเตอร์ห้องจุดรับสินค้า"
     ]
+
     start_date = datetime.date(2025, 10, 20)
     end_date = datetime.date(2025, 11, 9)
     delta = timedelta(days=1)
+
     current_date = start_date
     added_count = 0
 
     while current_date <= end_date:
-        if current_date.weekday() == 2:  # ข้ามวันพุธ
+        # ข้ามวันพุธ
+        if current_date.weekday() == 2:
             current_date += delta
             continue
+
         for item in items:
             status = "ปกติ"
             if item == "ตรวจสอบระบบ Server" and current_date == datetime.date(2025, 10, 26):
                 status = "ผิดปกติ"
+
             cur.execute("""
                 INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by, created_at)
                 VALUES (%s, %s, %s, %s, %s, NOW())
-            """, (current_date.strftime("%Y-%m-%d"), item, status, "เพิ่มข้อมูลอัตโนมัติ", "System Bot"))
+            """, (
+                current_date.strftime("%Y-%m-%d"),
+                item,
+                status,
+                "เพิ่มข้อมูลอัตโนมัติ",
+                "System Bot"
+            ))
             added_count += 1
+
         current_date += delta
 
     conn.commit()
@@ -132,6 +147,7 @@ def auto_backup_db():
 def index():
     conn = get_db_connection()
     cur = conn.cursor()
+
     cur.execute("""
         SELECT id, work_date, category, description, status, branch, assigned_by, updated_at, created_at
         FROM work_logs
@@ -146,6 +162,7 @@ def index():
     in_progress = cur.fetchone()['count']
     cur.execute("SELECT COUNT(*) FROM work_logs WHERE status='pending'")
     pending = cur.fetchone()['count']
+
     conn.close()
 
     status_dict = {'done': 'เสร็จสิ้น', 'in progress': 'กำลังดำเนินการ', 'pending': 'รอดำเนินการ'}
@@ -175,7 +192,13 @@ def add_inventory():
         cur.execute("""
             INSERT INTO inventory (item_name, category, quantity, location, remark)
             VALUES (%s, %s, %s, %s, %s)
-        """, (request.form["item_name"], request.form.get("category"), request.form.get("quantity") or 0, request.form.get("location"), request.form.get("remark")))
+        """, (
+            request.form["item_name"],
+            request.form.get("category"),
+            request.form.get("quantity") or 0,
+            request.form.get("location"),
+            request.form.get("remark")
+        ))
         conn.commit()
         conn.close()
         auto_backup_db()
@@ -194,7 +217,14 @@ def add():
         cur.execute("""
             INSERT INTO work_logs (work_date, category, description, status, branch, assigned_by, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
-        """, (request.form["work_date"], request.form["category"], request.form["description"], request.form["status"], request.form.get("branch"), request.form.get("assigned_by")))
+        """, (
+            request.form["work_date"],
+            request.form["category"],
+            request.form["description"],
+            request.form["status"],
+            request.form.get("branch"),
+            request.form.get("assigned_by")
+        ))
         conn.commit()
         conn.close()
         auto_backup_db()
@@ -214,7 +244,15 @@ def edit(id):
             UPDATE work_logs
             SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s, updated_at=NOW()
             WHERE id=%s
-        """, (request.form["work_date"], request.form["category"], request.form["description"], request.form["status"], request.form.get("branch"), request.form.get("assigned_by"), id))
+        """, (
+            request.form["work_date"],
+            request.form["category"],
+            request.form["description"],
+            request.form["status"],
+            request.form.get("branch"),
+            request.form.get("assigned_by"),
+            id
+        ))
         conn.commit()
         conn.close()
         auto_backup_db()
@@ -249,11 +287,13 @@ def switches():
     cur = conn.cursor()
     cur.execute("SELECT * FROM switches ORDER BY id DESC")
     switches = cur.fetchall()
+
     cur.execute("SELECT * FROM cameras")
     cameras = cur.fetchall()
     camera_dict = {}
     for cam in cameras:
         camera_dict.setdefault(cam['switch_id'], []).append(cam)
+
     conn.close()
     return render_template("switches.html", switches=switches, camera_dict=camera_dict)
 
@@ -265,7 +305,15 @@ def add_switch():
         cur.execute("""
             INSERT INTO switches (name, ip, model, ports, location, status, remark)
             VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
-        """, (request.form.get("name"), request.form.get("ip"), request.form.get("model"), request.form.get("ports") or 0, request.form.get("location"), request.form.get("status"), request.form.get("remark")))
+        """, (
+            request.form.get("name"),
+            request.form.get("ip"),
+            request.form.get("model"),
+            request.form.get("ports") or 0,
+            request.form.get("location"),
+            request.form.get("status"),
+            request.form.get("remark")
+        ))
         switch_id = cur.fetchone()['id']
 
         names = request.form.getlist('camera_name[]')
@@ -292,8 +340,10 @@ def daily_check():
     cur.execute("SELECT status, COUNT(*) AS count FROM daily_checks GROUP BY status")
     stats = cur.fetchall()
     conn.close()
+
     labels = [s['status'] for s in stats]
     data = [s['count'] for s in stats]
+
     return render_template("daily_check.html", labels=labels, data=data)
 
 @app.route("/daily_check_stats_json")
@@ -303,8 +353,10 @@ def daily_check_stats_json():
     cur.execute("SELECT status, COUNT(*) AS count FROM daily_checks GROUP BY status")
     stats = cur.fetchall()
     conn.close()
+
     labels = [s['status'] for s in stats]
     data = [s['count'] for s in stats]
+
     return {"labels": labels, "data": data}
 
 @app.route("/add_daily_check", methods=["POST"])
@@ -314,16 +366,25 @@ def add_daily_check():
     status = request.form["status"]
     remark = request.form["remark"]
     checked_by = request.form["checked_by"]
+
     conn = get_db_connection()
     cur = conn.cursor()
+
     # ป้องกันข้อมูลซ้ำ
-    cur.execute("SELECT * FROM daily_checks WHERE check_date=%s AND item_name=%s", (check_date, item_name))
+    cur.execute("""
+        SELECT * FROM daily_checks
+        WHERE check_date=%s AND item_name=%s
+    """, (check_date, item_name))
     exists = cur.fetchone()
     if exists:
         flash(f"❌ ข้อมูล '{item_name}' ของวันที่ {check_date} ซ้ำ ไม่สามารถเพิ่มได้", "warning")
         conn.close()
         return redirect(url_for("daily_check"))
-    cur.execute("INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by, created_at) VALUES (%s, %s, %s, %s, %s, NOW())", (check_date, item_name, status, remark, checked_by))
+
+    cur.execute("""
+        INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by, created_at)
+        VALUES (%s, %s, %s, %s, %s, NOW())
+    """, (check_date, item_name, status, remark, checked_by))
     conn.commit()
     conn.close()
     auto_backup_db()
@@ -337,6 +398,7 @@ def daily_check_history():
     cur.execute("SELECT * FROM daily_checks ORDER BY check_date DESC, id DESC")
     records = cur.fetchall()
     conn.close()
+
     return render_template("daily_check_history.html", records=records)
 
 # ลบ Daily Check
@@ -364,22 +426,6 @@ def delete_daily_check_ajax(id):
         return {"success": True, "message": "✅ ลบข้อมูลเรียบร้อยแล้ว"}
     except Exception as e:
         return {"success": False, "message": str(e)}
-
-# ---------------------------------
-# TEMP ROUTE เพิ่ม columns updated_at และ created_at
-# ---------------------------------
-@app.route("/add_columns_run")
-def add_columns_run():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();")
-        cur.execute("ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();")
-        conn.commit()
-        conn.close()
-        return "✅ Columns updated_at และ created_at พร้อมใช้งานแล้ว"
-    except Exception as e:
-        return f"❌ เกิดข้อผิดพลาด: {e}"
 
 # ---------------------------------
 # RUN
