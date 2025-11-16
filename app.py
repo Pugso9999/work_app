@@ -41,9 +41,9 @@ def init_db():
     # เพิ่ม column branch
     try:
         cur.execute("ALTER TABLE work_logs ADD COLUMN branch TEXT")
-        conn.commit()  # commit ถ้าเพิ่มสำเร็จ
+        conn.commit()
     except psycopg2.errors.DuplicateColumn:
-        conn.rollback()  # rollback ถ้า column มีอยู่แล้ว
+        conn.rollback()
 
     # เพิ่ม column assigned_by
     try:
@@ -52,6 +52,13 @@ def init_db():
     except psycopg2.errors.DuplicateColumn:
         conn.rollback()
 
+    # เพิ่ม column updated_at
+    try:
+        cur.execute("ALTER TABLE work_logs ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()")
+        conn.commit()
+    except psycopg2.errors.DuplicateColumn:
+        conn.rollback()
+    
     # สร้างตาราง daily_checks
     cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_checks (
@@ -126,6 +133,7 @@ def insert_auto_data_v2():
     conn.close()
     print(f"✅ เพิ่มข้อมูลตรวจสอบอัตโนมัติแล้วทั้งหมด {added_count} รายการเรียบร้อย!")
 
+
 # ---------------------------------
 # BACKUP FUNCTION
 # ---------------------------------
@@ -144,6 +152,7 @@ def auto_backup_db():
     except Exception as e:
         print(f"[Auto Backup Error] {e}")
 
+
 # ---------------------------------
 # หน้าแรก (Dashboard)
 # ---------------------------------
@@ -152,9 +161,8 @@ def index():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # ดึง branch และ assigned_by ด้วย
     cur.execute("""
-        SELECT id, work_date, category, description, status, branch, assigned_by
+        SELECT id, work_date, category, description, status, branch, assigned_by, updated_at
         FROM work_logs
         ORDER BY work_date::date DESC, id DESC
     """)
@@ -175,7 +183,9 @@ def index():
     for log in logs:
         log['status_th'] = status_dict.get(log['status'], log['status'])
 
-    return render_template("index.html", logs=logs, done=done, in_progress=in_progress, pending=pending)
+    now = datetime.datetime.now()
+
+    return render_template("index.html", logs=logs, done=done, in_progress=in_progress, pending=pending, now=now)
 
 
 # ---------------------------------
@@ -189,6 +199,7 @@ def inventory():
     items = cur.fetchall()
     conn.close()
     return render_template("inventory.html", items=items)
+
 
 @app.route("/add_inventory", methods=["GET", "POST"])
 def add_inventory():
@@ -212,6 +223,7 @@ def add_inventory():
         return redirect(url_for("inventory"))
     return render_template("add_inventory.html")
 
+
 # ---------------------------------
 # เพิ่มงาน
 # ---------------------------------
@@ -221,7 +233,7 @@ def add():
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO work_logs (work_date, category, description, status, branch, assigned_by) VALUES (%s, %s, %s, %s, %s, %s)",
+            "INSERT INTO work_logs (work_date, category, description, status, branch, assigned_by, updated_at) VALUES (%s, %s, %s, %s, %s, %s, NOW())",
             (
                 request.form["work_date"],
                 request.form["category"],
@@ -238,7 +250,10 @@ def add():
         return redirect("/")
     return render_template("add.html", today=date.today())
 
+
+# ---------------------------------
 # ลบงาน
+# ---------------------------------
 @app.route("/delete/<int:id>")
 def delete(id):
     conn = get_db_connection()
@@ -250,25 +265,27 @@ def delete(id):
     flash("✅ ลบงานเรียบร้อยแล้ว", "success")
     return redirect("/")
 
+
+# ---------------------------------
 # แก้ไขงาน
+# ---------------------------------
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
 def edit(id):
     conn = get_db_connection()
     cur = conn.cursor()
     if request.method == "POST":
         cur.execute(
-    "UPDATE work_logs SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s WHERE id=%s",
-    (
-        request.form["work_date"],
-        request.form["category"],
-        request.form["description"],
-        request.form["status"],
-        request.form.get("branch"),
-        request.form.get("assigned_by"),
-        id
-    )
-)
-
+            "UPDATE work_logs SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s, updated_at=NOW() WHERE id=%s",
+            (
+                request.form["work_date"],
+                request.form["category"],
+                request.form["description"],
+                request.form["status"],
+                request.form.get("branch"),
+                request.form.get("assigned_by"),
+                id
+            )
+        )
         conn.commit()
         conn.close()
         auto_backup_db()
@@ -299,6 +316,7 @@ def switches():
 
     conn.close()
     return render_template("switches.html", switches=switches, camera_dict=camera_dict)
+
 
 @app.route("/add_switch", methods=["GET", "POST"])
 def add_switch():
@@ -333,6 +351,7 @@ def add_switch():
 
     return render_template("add_switch.html")
 
+
 # ---------------------------------
 # Daily Check
 # ---------------------------------
@@ -349,6 +368,7 @@ def daily_check():
 
     return render_template("daily_check.html", labels=labels, data=data)
 
+
 @app.route("/daily_check_stats_json")
 def daily_check_stats_json():
     conn = get_db_connection()
@@ -361,6 +381,7 @@ def daily_check_stats_json():
     data = [s['count'] for s in stats]
 
     return {"labels": labels, "data": data}
+
 
 @app.route("/add_daily_check", methods=["POST"])
 def add_daily_check():
@@ -394,6 +415,7 @@ def add_daily_check():
     flash(f"✅ บันทึกข้อมูลเรียบร้อยแล้ว", "success")
     return redirect(url_for("daily_check_history"))
 
+
 @app.route("/daily_check_history")
 def daily_check_history():
     conn = get_db_connection()
@@ -403,6 +425,7 @@ def daily_check_history():
     conn.close()
 
     return render_template("daily_check_history.html", records=records)
+
 
 # ลบ Daily Check
 @app.route("/delete_daily_check/<int:id>")
@@ -415,6 +438,7 @@ def delete_daily_check(id):
     auto_backup_db()
     flash("✅ ลบข้อมูลเรียบร้อยแล้ว", "success")
     return redirect(url_for("daily_check_history"))
+
 
 # AJAX ลบ Daily Check
 @app.route("/delete_daily_check_ajax/<int:id>", methods=["POST"])
@@ -429,6 +453,7 @@ def delete_daily_check_ajax(id):
         return {"success": True, "message": "✅ ลบข้อมูลเรียบร้อยแล้ว"}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
 
 # ---------------------------------
 # RUN

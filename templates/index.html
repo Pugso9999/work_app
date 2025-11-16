@@ -101,7 +101,19 @@
           <td class="text-nowrap text-center">{{ log['work_date'] }}</td>
           <td>{{ log['category'] }}</td>
           <td>{{ log['branch'] or '' }}</td>
-          <td>{{ log['description'] }}</td>
+          <td>
+            {{ log['description'] }}
+            {% if log['updated_at'] %}
+              {% set delta = (now - log['updated_at']).total_seconds() %}
+              {% if delta <= 7200 %}
+                {% if log['updated_at']|string != log['work_date'] %}
+                  <span class="badge bg-success ms-1">Update</span>
+                {% else %}
+                  <span class="badge bg-success ms-1">New</span>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          </td>
           <td class="text-center">
             {% if log['status'] == 'done' %}
               <span class="badge bg-success">เสร็จแล้ว</span>
