@@ -241,29 +241,47 @@ VALUES (%s, %s, %s, %s, %s, %s)
 def edit(id):
     conn = get_db_connection()
     cur = conn.cursor()
-    if request.method == "POST":
-        cur.execute("""
-            UPDATE work_logs
-            SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s
 
-        """, (
-            request.form["work_date"],
-            request.form["category"],
-            request.form["description"],
-            request.form["status"],
-            request.form.get("branch"),
-            request.form.get("assigned_by"),
-            id
-        ))
-        conn.commit()
-        conn.close()
-        auto_backup_db()
-        flash("✅ แก้ไขงานเรียบร้อยแล้ว", "success")
+    if request.method == "POST":
+        # ดึงค่าจาก form และกำหนด default หากไม่มีค่า
+        work_date = request.form.get("work_date", str(date.today()))
+        category = request.form.get("category", "")
+        description = request.form.get("description", "")
+        status = request.form.get("status", "done")
+
+        try:
+            # แปลง id เป็น int เผื่อมีปัญหา
+            id = int(id)
+
+            # UPDATE ข้อมูล
+            cur.execute(
+                """
+                UPDATE work_logs
+                SET work_date=%s, category=%s, description=%s, status=%s
+                WHERE id=%s
+                """,
+                (work_date, category, description, status, id)
+            )
+            conn.commit()
+            auto_backup_db()
+            flash("แก้ไขงานเรียบร้อยแล้ว", "success")
+        except Exception as e:
+            conn.rollback()
+            flash(f"เกิดข้อผิดพลาดในการแก้ไข: {e}", "danger")
+        finally:
+            conn.close()
         return redirect("/")
 
-    cur.execute("SELECT * FROM work_logs WHERE id=%s", (id,))
-    log = cur.fetchone()
-    conn.close()
+    # GET request: แสดง form
+    try:
+        cur.execute("SELECT * FROM work_logs WHERE id=%s", (id,))
+        log = cur.fetchone()
+    except Exception as e:
+        flash(f"ไม่พบงานที่ต้องการแก้ไข: {e}", "danger")
+        log = None
+    finally:
+        conn.close()
+
     return render_template("edit.html", log=log)
 
 # ---------------------------------
