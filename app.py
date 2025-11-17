@@ -216,8 +216,9 @@ def add():
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO work_logs (work_date, category, description, status, branch, assigned_by, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+            INSERT INTO work_logs (work_date, category, description, status, branch, assigned_by)
+VALUES (%s, %s, %s, %s, %s, %s)
+
         """, (
             request.form["work_date"],
             request.form["category"],
@@ -243,8 +244,8 @@ def edit(id):
     if request.method == "POST":
         cur.execute("""
             UPDATE work_logs
-            SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s, updated_at=NOW()
-            WHERE id=%s
+            SET work_date=%s, category=%s, description=%s, status=%s, branch=%s, assigned_by=%s
+
         """, (
             request.form["work_date"],
             request.form["category"],
