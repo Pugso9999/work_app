@@ -149,10 +149,11 @@ def index():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT id, work_date, category, description, status, branch, assigned_by, updated_at, created_at
-        FROM work_logs
-        ORDER BY work_date::date DESC, id DESC
-    """)
+    SELECT id, work_date, category, description, status, branch, assigned_by
+    FROM work_logs
+    ORDER BY work_date::date DESC, id DESC
+""")
+
     logs = cur.fetchall()
 
     # Summary

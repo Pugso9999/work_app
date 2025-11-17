@@ -1,14 +1,26 @@
 import psycopg2
-from psycopg2.extras import RealDictCursor
 import os
 
-conn = psycopg2.connect(os.environ['DATABASE_URL'], cursor_factory=RealDictCursor)
+DATABASE_URL = "postgresql://workapp_db_3nxq_user:MLCl6JbfWMEkj4GwiwOlyukMEEkzFFej@dpg-d43cdfili9vc73crdq7g.oregon-postgres.render.com/workapp_db_3nxq"
+
+conn = psycopg2.connect(DATABASE_URL)
 cur = conn.cursor()
 
-# สร้าง column ใหม่ถ้ายังไม่มี
-cur.execute("ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();")
-cur.execute("ALTER TABLE work_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();")
+columns = {
+    "branch": "ALTER TABLE work_logs ADD COLUMN branch TEXT",
+    "assigned_by": "ALTER TABLE work_logs ADD COLUMN assigned_by TEXT",
+    "updated_at": "ALTER TABLE work_logs ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()",
+    "created_at": "ALTER TABLE work_logs ADD COLUMN created_at TIMESTAMP DEFAULT NOW()"
+}
 
-conn.commit()
+for name, sql in columns.items():
+    try:
+        cur.execute(sql)
+        conn.commit()
+        print(f"เพิ่มคอลัมน์ {name} ✓")
+    except psycopg2.errors.DuplicateColumn:
+        conn.rollback()
+        print(f"คอลัมน์ {name} มีอยู่แล้ว ✓")
+
 conn.close()
-print("✅ Columns updated_at และ created_at พร้อมใช้งานแล้ว")
+print("เสร็จแล้ว ✓")
