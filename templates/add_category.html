@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0"><i class="bi bi-plus-circle"></i> เพิ่มหมวดหมู่</h4>
+        </div>
+
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">ชื่อหมวดหมู่:</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+
+                <button class="btn btn-success"><i class="bi bi-check"></i> บันทึก</button>
+                <a class="btn btn-secondary" href="{{ url_for('solution_categories') }}">ย้อนกลับ</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

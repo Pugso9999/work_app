@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="text-success"><i class="bi bi-folder2-open"></i> หมวดหมู่วิธีแก้ปัญหา</h3>
+        <a href="{{ url_for('add_category') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> เพิ่มหมวดหมู่
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-bordered table-hover">
+                <thead class="table-success">
+                    <tr>
+                        <th>#</th>
+                        <th>ชื่อหมวดหมู่</th>
+                        <th>ตัวเลือก</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ cat.name }}</td>
+                        <td>
+                            <a href="{{ url_for('solutions', category_id=cat.id) }}" class="btn btn-sm btn-primary">
+                                ดูรายการ
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if categories|length == 0 %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">ยังไม่มีหมวดหมู่</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

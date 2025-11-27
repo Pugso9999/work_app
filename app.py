@@ -69,6 +69,24 @@ def init_db():
         conn.rollback()
 
     conn.close()
+    # ตารางหมวดหมู่วิธีแก้ปัญหา
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS solution_categories (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL
+        )
+    """)
+
+    # ตารางคำแนะนำ / วิธีแก้
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS solutions (
+            id SERIAL PRIMARY KEY,
+            category_id INTEGER REFERENCES solution_categories(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
 
 # ---------------------------------
 # INSERT AUTO DATA V2
@@ -446,6 +464,47 @@ def delete_daily_check_ajax(id):
         return {"success": True, "message": "✅ ลบข้อมูลเรียบร้อยแล้ว"}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+# ---------------------------------
+# Knowledge Base: Categories
+# ---------------------------------
+@app.route("/solution_categories")
+def solution_categories():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM solution_categories ORDER BY id DESC")
+    categories = cur.fetchall()
+    conn.close()
+    return render_template("solution_categories.html", categories=categories)
+
+@app.route("/add_category", methods=["GET", "POST"])
+def add_category():
+    if request.method == "POST":
+        name = request.form.get("name")
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO solution_categories (name) VALUES (%s)", (name,))
+        conn.commit()
+        conn.close()
+        flash("✅ เพิ่มหมวดหมู่สำเร็จ", "success")
+        return redirect(url_for("solution_categories"))
+
+    return render_template("add_category.html")
+
+@app.route("/solutions/<int:category_id>")
+def solutions(category_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM solution_categories WHERE id=%s", (category_id,))
+    category = cur.fetchone()
+
+    cur.execute("SELECT * FROM solutions WHERE category_id=%s ORDER BY id DESC", (category_id,))
+    solutions = cur.fetchall()
+
+    conn.close()
+    return render_template("solutions.html", category=category, solutions=solutions)
+
 
 # ---------------------------------
 # RUN

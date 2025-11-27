@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-plus-circle"></i> เพิ่มวิธีแก้ปัญหา</h4>
+        </div>
+
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">หัวข้อ:</label>
+                    <input type="text" name="title" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">รายละเอียด:</label>
+                    <textarea name="detail" rows="3" class="form-control" required></textarea>
+                </div>
+
+                <button class="btn btn-primary"><i class="bi bi-check"></i> บันทึก</button>
+                <a href="{{ url_for('solutions', category_id=category.id) }}" class="btn btn-secondary">ย้อนกลับ</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
