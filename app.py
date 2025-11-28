@@ -130,7 +130,6 @@ def init_db():
 # ---------------------------------
 # INSERT AUTO DATA V2
 # ---------------------------------
-from datetime import date, timedelta
 
 @app.route("/insert_auto_data_v2")
 def insert_auto_data_v2():
@@ -670,7 +669,6 @@ def add_category():
 # --------------------------------
 
 init_db()
-insert_auto_data_v2()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
