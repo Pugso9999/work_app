@@ -7,7 +7,7 @@ import os
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
-
+init_db()
 # ---------------------------------
 # DATABASE CONFIG
 # ---------------------------------
@@ -264,6 +264,35 @@ def add_inventory():
         return redirect(url_for("inventory"))
     return render_template("add_inventory.html")
 
+@app.route("/edit_inventory/<int:id>", methods=["GET", "POST"])
+def edit_inventory(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        cur.execute("""
+            UPDATE inventory
+            SET item_name=%s, category=%s, quantity=%s, location=%s, remark=%s
+            WHERE id=%s
+        """, (
+            request.form.get("item_name"),
+            request.form.get("category"),
+            request.form.get("quantity"),
+            request.form.get("location"),
+            request.form.get("remark"),
+            id
+        ))
+        conn.commit()
+        conn.close()
+        flash("แก้ไขข้อมูลอุปกรณ์สำเร็จ", "success")
+        return redirect(url_for("inventory"))
+
+    cur.execute("SELECT * FROM inventory WHERE id=%s", (id,))
+    item = cur.fetchone()
+    conn.close()
+    return render_template("edit_inventory.html", item=item)
+
+
 # ---------------------------------
 # เพิ่มงาน
 # ---------------------------------
@@ -449,6 +478,19 @@ def edit_switch(id):
     conn.close()
     return render_template("edit_switch.html", sw=sw)
 
+@app.route("/delete_switch/<int:id>")
+def delete_switch(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM switches WHERE id=%s", (id,))
+    cur.execute("DELETE FROM cameras WHERE switch_id=%s", (id,))
+    conn.commit()
+    conn.close()
+
+    flash("ลบ Switch เรียบร้อยแล้ว", "success")
+    return redirect(url_for("switches"))
+
 
 # ---------------------------------
 # Daily Check
@@ -619,5 +661,4 @@ def add_category():
 
 
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
