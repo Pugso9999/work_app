@@ -8,9 +8,6 @@ import os
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
-init_db()
-insert_auto_data_v2()
-
 # ---------------------------------
 # DATABASE CONFIG
 # ---------------------------------
@@ -662,6 +659,8 @@ def add_category():
 # RUN
 # --------------------------------
 
+init_db()
+insert_auto_data_v2()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
