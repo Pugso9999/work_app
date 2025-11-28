@@ -5,8 +5,6 @@ from datetime import date, datetime, timedelta
 import subprocess
 import os
 
-start_date = date(2025, 10, 20)
-end_date = date(2025, 11, 6)
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
@@ -132,54 +130,64 @@ def init_db():
 # ---------------------------------
 # INSERT AUTO DATA V2
 # ---------------------------------
+from datetime import date, timedelta
+
+@app.route("/insert_auto_data_v2")
 def insert_auto_data_v2():
-    conn = get_db_connection()
-    cur = conn.cursor()
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
 
-    items = [
-        "ตรวจสอบระบบ Server",
-        "ตรวจสอบเครื่องสำรองไฟ (UPS)",
-        "สำรวจเครื่องชั่งน้ำหนัก",
-        "ตรวจสอบกล้อง CCTV",
-        "สำรวจเครื่อง Cashier",
-        "สำรวจคอมพิวเตอร์ห้องจุดรับสินค้า"
-    ]
+        # รายการตรวจสอบ
+        items = [
+            "ตรวจสอบระบบ Server",
+            "ตรวจสอบกล้อง CCTV",
+            "ตรวจสอบสวิตช์เครือข่าย",
+            "ตรวจสอบเครื่องสำรองไฟ (UPS)",
+            "ตรวจสอบระบบอินเทอร์เน็ต",
+            "ตรวจสอบอุปกรณ์สำนักงาน",
+            "ตรวจสอบเครื่องพิมพ์",
+            "ตรวจสอบระบบแสงสว่าง",
+            "ตรวจสอบอุณหภูมิห้อง Server",
+            "ตรวจสอบระบบ NAS สำรองข้อมูล"
+        ]
 
-    start_date = datetime.date(2025, 10, 20)
-    end_date = datetime.date(2025, 11, 9)
-    delta = timedelta(days=1)
+        # สถานะตัวอย่าง
+        statuses = ["ปกติ", "ผิดปกติ", "รอตรวจสอบ"]
 
-    current_date = start_date
-    added_count = 0
+        # กำหนดช่วงวันที่
+        start_date = date(2025, 10, 20)
+        end_date = date(2025, 11, 6)
+        delta = timedelta(days=1)
 
-    while current_date <= end_date:
-        # ข้ามวันพุธ
-        if current_date.weekday() == 2:
+        current_date = start_date
+        added_count = 0
+
+        # loop เพิ่มข้อมูลอัตโนมัติ
+        while current_date <= end_date:
+            for item in items:
+                cur.execute("""
+                    INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (
+                    current_date.strftime("%Y-%m-%d"),
+                    item,
+                    statuses[added_count % len(statuses)],
+                    "ข้อมูลอัตโนมัติ",
+                    "System Bot"
+                ))
+                added_count += 1
             current_date += delta
-            continue
 
-        for item in items:
-            status = "ปกติ"
-            if item == "ตรวจสอบระบบ Server" and current_date == datetime.date(2025, 10, 26):
-                status = "ผิดปกติ"
+        conn.commit()
+        conn.close()
 
-            cur.execute("""
-                INSERT INTO daily_checks (check_date, item_name, status, remark, checked_by, created_at)
-                VALUES (%s, %s, %s, %s, %s, NOW())
-            """, (
-                current_date.strftime("%Y-%m-%d"),
-                item,
-                status,
-                "เพิ่มข้อมูลอัตโนมัติ",
-                "System Bot"
-            ))
-            added_count += 1
+        # สำรองฐานข้อมูลอัตโนมัติ
+        auto_backup_db()
 
-        current_date += delta
-
-    conn.commit()
-    conn.close()
-    print(f"✅ เพิ่มข้อมูลตรวจสอบอัตโนมัติแล้วทั้งหมด {added_count} รายการเรียบร้อย!")
+        return f"✅ เพิ่มข้อมูลอัตโนมัติแล้วทั้งหมด {added_count} รายการเรียบร้อย!"
+    except Exception as e:
+        return f"❌ เกิดข้อผิดพลาด: {e}"
 
 # ---------------------------------
 # BACKUP FUNCTION
