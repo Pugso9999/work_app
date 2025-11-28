@@ -7,7 +7,7 @@ import os
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
-init_db()
+
 # ---------------------------------
 # DATABASE CONFIG
 # ---------------------------------
