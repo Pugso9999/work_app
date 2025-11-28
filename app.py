@@ -67,6 +67,42 @@ def init_db():
         conn.commit()
     except psycopg2.errors.DuplicateColumn:
         conn.rollback()
+    # ตาราง inventory
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS inventory (
+            id SERIAL PRIMARY KEY,
+            item_name TEXT NOT NULL,
+            category TEXT,
+            quantity INTEGER DEFAULT 0,
+            location TEXT,
+            remark TEXT
+        )
+    """)
+
+    # ตาราง switches
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS switches (
+            id SERIAL PRIMARY KEY,
+            name TEXT,
+            ip TEXT,
+            model TEXT,
+            ports INTEGER,
+            location TEXT,
+            status TEXT,
+            remark TEXT
+        )
+    """)
+
+    # ตาราง cameras
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS cameras (
+            id SERIAL PRIMARY KEY,
+            switch_id INTEGER REFERENCES switches(id) ON DELETE CASCADE,
+            name TEXT,
+            ip TEXT
+        )
+    """)
+
 
    # --------------------------------------------
     # ⭐ CREATE knowledge base tables (ถูกต้อง)
@@ -275,14 +311,25 @@ def edit(id):
             id = int(id)
 
             # UPDATE ข้อมูล
-            cur.execute(
-                """
-                UPDATE work_logs
-                SET work_date=%s, category=%s, description=%s, status=%s
-                WHERE id=%s
-                """,
-                (work_date, category, description, status, id)
-            )
+            cur.execute("""
+            UPDATE work_logs
+            SET work_date=%s,
+            category=%s,
+            description=%s,
+            status=%s,
+            branch=%s,
+            assigned_by=%s,
+            updated_at=NOW()
+            WHERE id=%s
+            """, (
+            request.form.get("work_date"),
+            request.form.get("category"),
+            request.form.get("description"),
+            request.form.get("status"),
+            request.form.get("branch"),
+            request.form.get("assigned_by"),
+            id
+            ))
             conn.commit()
             auto_backup_db()
             flash("แก้ไขงานเรียบร้อยแล้ว", "success")
@@ -370,6 +417,38 @@ def add_switch():
         return redirect(url_for("switches"))
 
     return render_template("add_switch.html")
+
+@app.route("/edit_switch/<int:id>", methods=["GET", "POST"])
+def edit_switch(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        cur.execute("""
+            UPDATE switches
+            SET name=%s, ip=%s, model=%s, ports=%s, location=%s, status=%s, remark=%s
+            WHERE id=%s
+        """, (
+            request.form.get("name"),
+            request.form.get("ip"),
+            request.form.get("model"),
+            request.form.get("ports"),
+            request.form.get("location"),
+            request.form.get("status"),
+            request.form.get("remark"),
+            id
+        ))
+
+        conn.commit()
+        conn.close()
+        flash("แก้ไข Switch สำเร็จ", "success")
+        return redirect(url_for("switches"))
+
+    cur.execute("SELECT * FROM switches WHERE id=%s", (id,))
+    sw = cur.fetchone()
+    conn.close()
+    return render_template("edit_switch.html", sw=sw)
+
 
 # ---------------------------------
 # Daily Check
@@ -536,37 +615,9 @@ def add_category():
 
 # ---------------------------------
 # RUN
-# ---------------------------------
-@app.route("/create_kb_tables")
-def create_kb_tables():
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    # สร้างตารางหมวดหมู่
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS solution_categories (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL
-        )
-    """)
-
-    # สร้างตารางวิธีแก้ไขปัญหา
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS solutions (
-            id SERIAL PRIMARY KEY,
-            category_id INTEGER REFERENCES solution_categories(id) ON DELETE CASCADE,
-            title TEXT NOT NULL,
-            detail TEXT NOT NULL
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
-    return "✅ สร้างตาราง knowledge base เรียบร้อยแล้ว"
+# --------------------------------
 
 
 if __name__ == "__main__":
     init_db()
-    insert_auto_data_v2()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
