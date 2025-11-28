@@ -5,6 +5,8 @@ from datetime import date, datetime, timedelta
 import subprocess
 import os
 
+start_date = date(2025, 10, 20)
+end_date = date(2025, 11, 6)
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
