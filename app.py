@@ -8,6 +8,9 @@ import os
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
+init_db()
+insert_auto_data_v2()
+
 # ---------------------------------
 # DATABASE CONFIG
 # ---------------------------------
@@ -264,8 +267,8 @@ def add_inventory():
         return redirect(url_for("inventory"))
     return render_template("add_inventory.html")
 
-@app.route("/edit_inventory/<int:id>", methods=["GET", "POST"])
-def edit_inventory(id):
+@app.route("/edit_item/<int:id>", methods=["GET", "POST"])
+def edit_item(id):
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -290,7 +293,7 @@ def edit_inventory(id):
     cur.execute("SELECT * FROM inventory WHERE id=%s", (id,))
     item = cur.fetchone()
     conn.close()
-    return render_template("edit_inventory.html", item=item)
+    return render_template("edit_item.html", item=item)
 
 
 # ---------------------------------
