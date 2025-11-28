@@ -108,7 +108,7 @@ def init_db():
     # ⭐ CREATE knowledge base tables (ถูกต้อง)
     # --------------------------------------------
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS solution_categories (
+        CREATE TABLE IF NOT EXISTS solutions_categories (
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL
         )
@@ -117,7 +117,7 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS solutions (
             id SERIAL PRIMARY KEY,
-            category_id INTEGER REFERENCES solution_categories(id) ON DELETE CASCADE,
+            category_id INTEGER REFERENCES solutions_categories(id) ON DELETE CASCADE,
             title TEXT NOT NULL,
             detail TEXT NOT NULL
         )
@@ -601,17 +601,17 @@ def delete_daily_check_ajax(id):
 # ---------------------------------
 # Knowledge Base: Categories
 # ---------------------------------
-@app.route("/solution_categories")
-def solution_categories():
+@app.route("/solutions_categories")
+def solutions_categories():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM solution_categories ORDER BY id DESC")
+    cur.execute("SELECT * FROM solutions_categories ORDER BY id DESC")
     categories = cur.fetchall()
     conn.close()
-    return render_template("solution_categories.html", categories=categories)
+    return render_template("solutions_categories.html", categories=categories)
 
-@app.route("/add_solution/<int:category_id>", methods=["GET", "POST"])
-def add_solution(category_id):
+@app.route("/add_solutions/<int:category_id>", methods=["GET", "POST"])
+def add_solutions(category_id):
     if request.method == "POST":
         title = request.form.get("title")
         detail = request.form.get("detail")
@@ -630,18 +630,18 @@ def add_solution(category_id):
 
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM solution_categories WHERE id=%s", (category_id,))
+    cur.execute("SELECT * FROM solutions_categories WHERE id=%s", (category_id,))
     category = cur.fetchone()
     conn.close()
 
-    return render_template("add_solution.html", category=category)
+    return render_template("add_solutions.html", category=category)
 
 @app.route("/solutions/<int:category_id>")
 def solutions(category_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM solution_categories WHERE id=%s", (category_id,))
+    cur.execute("SELECT * FROM solutions_categories WHERE id=%s", (category_id,))
     category = cur.fetchone()
 
     cur.execute("SELECT * FROM solutions WHERE category_id=%s ORDER BY id DESC", (category_id,))
@@ -656,11 +656,11 @@ def add_category():
         name = request.form.get("name")
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("INSERT INTO solution_categories (name) VALUES (%s)", (name,))
+        cur.execute("INSERT INTO solutions_categories (name) VALUES (%s)", (name,))
         conn.commit()
         conn.close()
         flash("✅ เพิ่มหมวดหมู่สำเร็จ", "success")
-        return redirect(url_for("solution_categories"))
+        return redirect(url_for("solutions_categories"))
 
     return render_template("add_category.html")
 
