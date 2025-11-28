@@ -519,7 +519,7 @@ def solutions(category_id):
 
     conn.close()
     return render_template("solutions.html", category=category, solutions=solutions)
-
+    
 @app.route("/add_category", methods=["GET", "POST"])
 def add_category():
     if request.method == "POST":
@@ -537,6 +537,35 @@ def add_category():
 # ---------------------------------
 # RUN
 # ---------------------------------
+@app.route("/create_kb_tables")
+def create_kb_tables():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # สร้างตารางหมวดหมู่
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS solution_categories (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL
+        )
+    """)
+
+    # สร้างตารางวิธีแก้ไขปัญหา
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS solutions (
+            id SERIAL PRIMARY KEY,
+            category_id INTEGER REFERENCES solution_categories(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            detail TEXT NOT NULL
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+    return "✅ สร้างตาราง knowledge base เรียบร้อยแล้ว"
+
+
 if __name__ == "__main__":
     init_db()
     insert_auto_data_v2()
