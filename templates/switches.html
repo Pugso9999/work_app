@@ -30,16 +30,28 @@
                 <td>{{ sw.status }}</td>
                 <td>{{ sw.remark }}</td>
                 <td>
-                    {% if camera_dict[sw.id] %}
-                        <ul>
-                        {% for cam in camera_dict[sw.id] %}
-                            <li>{{ cam.name }} ({{ cam.ip }})</li>
-                        {% endfor %}
-                        </ul>
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
+    {% if camera_dict[sw.id] %}
+        <button class="btn btn-sm btn-outline-primary"
+                data-bs-toggle="collapse"
+                data-bs-target="#cams{{ sw.id }}">
+            ดูกล้อง ({{ camera_dict[sw.id]|length }})
+        </button>
+
+        <div class="collapse mt-2" id="cams{{ sw.id }}">
+            <ul class="list-group">
+                {% for cam in camera_dict[sw.id] %}
+                <li class="list-group-item">
+                    <strong>{{ cam.name }}</strong>  
+                    <span class="text-muted">({{ cam.ip }})</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        -
+    {% endif %}
+</td>
+
                 <td>
                     <a href="{{ url_for('edit_switch', id=sw.id) }}" class="btn btn-sm btn-warning">แก้ไข</a>
                     <a href="{{ url_for('delete_switch', id=sw.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('คุณแน่ใจหรือไม่?')">ลบ</a>
