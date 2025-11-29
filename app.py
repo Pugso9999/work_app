@@ -456,36 +456,59 @@ def add_switch():
 
     return render_template("add_switch.html")
 
-@app.route("/edit_switch/<int:id>", methods=["GET", "POST"])
+@app.route("/switches/edit/<int:id>", methods=["GET", "POST"])
 def edit_switch(id):
     conn = get_db_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
 
     if request.method == "POST":
+        name = request.form["name"]
+        ip = request.form["ip"]
+        model = request.form["model"]
+        ports = request.form["ports"]
+        location = request.form["location"]
+        status = request.form["status"]
+        remark = request.form["remark"]
+
+        # อัปเดต switch หลัก
         cur.execute("""
             UPDATE switches
             SET name=%s, ip=%s, model=%s, ports=%s, location=%s, status=%s, remark=%s
             WHERE id=%s
-        """, (
-            request.form.get("name"),
-            request.form.get("ip"),
-            request.form.get("model"),
-            request.form.get("ports"),
-            request.form.get("location"),
-            request.form.get("status"),
-            request.form.get("remark"),
-            id
-        ))
+        """, (name, ip, model, ports, location, status, remark, id))
+
+        # อัปเดต cameras (ลบของเก่า → ใส่ใหม่)
+        cur.execute("DELETE FROM cameras WHERE switch_id=%s", (id,))
+
+        cam_names = request.form.getlist("camera_name[]")
+        cam_ips = request.form.getlist("camera_ip[]")
+
+        for cname, cip in zip(cam_names, cam_ips):
+            if cip.strip() != "":
+                cur.execute("""
+                    INSERT INTO cameras (switch_id, name, ip)
+                    VALUES (%s, %s, %s)
+                """, (id, cname, cip))
 
         conn.commit()
+        cur.close()
         conn.close()
-        flash("แก้ไข Switch สำเร็จ", "success")
+
+        flash("อัปเดต Switch สำเร็จ", "success")
         return redirect(url_for("switches"))
 
+    # GET: โหลดข้อมูลเดิม
     cur.execute("SELECT * FROM switches WHERE id=%s", (id,))
     sw = cur.fetchone()
+
+    cur.execute("SELECT * FROM cameras WHERE switch_id=%s", (id,))
+    cams = cur.fetchall()
+
+    cur.close()
     conn.close()
-    return render_template("edit_switch.html", sw=sw)
+
+    return render_template("edit_switch.html", sw=sw, cams=cams)
+
 
 @app.route("/delete_switch/<int:id>")
 def delete_switch(id):
