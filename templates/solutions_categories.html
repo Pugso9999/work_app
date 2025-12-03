@@ -1,43 +1,66 @@
 {% extends "base.html" %}
 {% block content %}
+
+<style>
+    .kb-gradient-title {
+        background: linear-gradient(45deg, #6a5af9, #9c27b0);
+        -webkit-background-clip: text;
+        color: transparent;
+        font-weight: 700;
+    }
+    .kb-card {
+        cursor: pointer;
+        border-radius: 12px;
+        transition: .25s;
+        border: none;
+    }
+    .kb-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+    .badge-count {
+        background-color: #6a5af9;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+    }
+</style>
+
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="text-success"><i class="bi bi-folder2-open"></i> หมวดหมู่วิธีแก้ปัญหา</h3>
-        <a href="{{ url_for('add_category') }}" class="btn btn-success">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="kb-gradient-title"><i class="bi bi-journal-bookmark-fill"></i> คลังความรู้ (Knowledge Base)</h2>
+
+        <a href="{{ url_for('add_category') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> เพิ่มหมวดหมู่
         </a>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <table class="table table-bordered table-hover">
-                <thead class="table-success">
-                    <tr>
-                        <th>#</th>
-                        <th>ชื่อหมวดหมู่</th>
-                        <th>ตัวเลือก</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cat in categories %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ cat.name }}</td>
-                        <td>
-                            <a href="{{ url_for('solutions', category_id=cat.id) }}" class="btn btn-sm btn-primary">
-                                ดูรายการ
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if categories|length == 0 %}
-                    <tr>
-                        <td colspan="3" class="text-center text-muted">ยังไม่มีหมวดหมู่</td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+    <div class="row mt-3">
+        {% for cat in categories %}
+        <div class="col-md-4 mb-3">
+            <div class="card kb-card shadow-sm"
+                 onclick="window.location='{{ url_for('solutions', category_id=cat.id) }}'">
+
+                <div class="card-body">
+                    <h5 class="fw-bold"><i class="bi bi-folder"></i> {{ cat.name }}</h5>
+
+                    <p class="text-muted small mb-2">
+                        จำนวนปัญหา <span class="badge-count">{{ cat.problem_count }}</span>
+                    </p>
+
+                    <p class="text-primary small mb-0"><i class="bi bi-eye"></i> คลิกเพื่อดูปัญหา</p>
+                </div>
+            </div>
         </div>
+        {% endfor %}
+
+        {% if categories|length == 0 %}
+        <p class="text-center text-muted mt-4">ยังไม่มีหมวดหมู่</p>
+        {% endif %}
     </div>
+
 </div>
+
 {% endblock %}
