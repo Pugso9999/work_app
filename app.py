@@ -624,14 +624,22 @@ def delete_daily_check_ajax(id):
 # ---------------------------------
 # Knowledge Base: Categories
 # ---------------------------------
-@app.route("/solutions_categories")
-def solutions_categories():
+# ตัวอย่าง route
+@app.route("/solutions_categories/<int:category_id>")
+def solutions_categories(category_id):
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM solutions_categories ORDER BY id DESC")
-    categories = cur.fetchall()
+    cur.execute("SELECT * FROM solutions_categories WHERE id=%s", (category_id,))
+    category = cur.fetchone()  # เอา category เดียว
+
+    cur.execute("SELECT * FROM solutions WHERE category_id=%s ORDER BY id DESC", (category_id,))
+    solutions = cur.fetchall()
     conn.close()
-    return render_template("solutions_categories.html", categories=categories)
+
+    return render_template("solutions_categories.html",
+                           category=category,
+                           solutions=solutions)
+
 
 @app.route("/add_solutions/<int:category_id>", methods=["GET", "POST"])
 def add_solutions(category_id):

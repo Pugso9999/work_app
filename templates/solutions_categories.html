@@ -26,7 +26,7 @@
         font-size: 12px;
     }
 </style>
-<!-- เพิ่ม -->
+
 <div class="container mt-4">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -37,32 +37,32 @@
         </a>
     </div>
 
-    <div class="col-md-4 mb-3">
-    <div class="card kb-card shadow-sm position-relative">
+    <div class="row">
+        {% for cat in categories %}
+        <div class="col-md-4 mb-3">
+            <div class="card kb-card shadow-sm position-relative">
 
-        <!-- ปุ่มลบ -->
-        <form method="POST" 
-              action="{{ url_for('delete_category', id=cat.id) }}" 
-              style="position:absolute; top:10px; right:10px; z-index:10;" 
-              onsubmit="return confirm('ต้องการลบหมวดหมู่นี้พร้อมวิธีแก้ทั้งหมดหรือไม่?');">
-            <button class="btn btn-sm btn-danger">
-                <i class="bi bi-trash"></i>
-            </button>
-        </form>
+                <!-- ปุ่มลบ -->
+                <form method="POST" 
+                      action="{{ url_for('delete_category', id=cat.id) }}" 
+                      style="position:absolute; top:10px; right:10px; z-index:10;" 
+                      onsubmit="return confirm('ต้องการลบหมวดหมู่นี้พร้อมวิธีแก้ทั้งหมดหรือไม่?');">
+                    <button class="btn btn-sm btn-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
 
-        <!-- คลิกไปดู Solutions -->
-        <div class="card-body" onclick="window.location='{{ url_for('solutions', category_id=cat.id) }}'">
-            <h5 class="fw-bold"><i class="bi bi-folder"></i> {{ cat.name }}</h5>
+                <!-- คลิกไปดู Solutions -->
+                <div class="card-body" onclick="window.location='{{ url_for('solutions', category_id=cat.id) }}'">
+                    <h5 class="fw-bold"><i class="bi bi-folder"></i> {{ cat.name }}</h5>
 
-            <p class="text-muted small mb-2">
-                จำนวนปัญหา <span class="badge-count">{{ cat.problem_count }}</span>
-            </p>
+                    <p class="text-muted small mb-2">
+                        จำนวนปัญหา <span class="badge-count">{{ cat.problem_count }}</span>
+                    </p>
 
-            <p class="text-primary small mb-0"><i class="bi bi-eye"></i> คลิกเพื่อดูปัญหา</p>
-        </div>
-    </div>
-</div>
-
+                    <p class="text-primary small mb-0"><i class="bi bi-eye"></i> คลิกเพื่อดูปัญหา</p>
+                </div>
+            </div>
         </div>
         {% endfor %}
 
