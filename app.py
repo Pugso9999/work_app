@@ -733,14 +733,18 @@ def solutions(category_id):
 def solutions_categories_all():
     conn = get_db_connection()
     cur = conn.cursor()
+
+    # ดึงหมวดหมู่ทั้งหมด พร้อมนับจำนวนวิธีแก้ปัญหาในแต่ละหมวด
     cur.execute("""
-        SELECT sc.*, 
-               (SELECT COUNT(*) FROM solutions WHERE category_id = sc.id) AS problem_count
+        SELECT sc.id, sc.name, COUNT(s.id) AS problem_count
         FROM solutions_categories sc
-        ORDER BY sc.id
+        LEFT JOIN solutions s ON sc.id = s.category_id
+        GROUP BY sc.id, sc.name
+        ORDER BY sc.id DESC
     """)
     categories = cur.fetchall()
     conn.close()
+
     return render_template("solutions_categories_all.html", categories=categories)
 
 
