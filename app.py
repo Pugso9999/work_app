@@ -734,6 +734,27 @@ def add_category():
 
     return render_template("add_category.html")
 
+@app.route("/delete_category/<int:id>", methods=["POST"])
+def delete_category(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # ถ้าตาราง solutions มี FOREIGN KEY category_id แบบ ON DELETE CASCADE
+    # การลบ category จะลบ solution ที่อยู่ในหมวดนี้อัตโนมัติ
+    try:
+        cur.execute("DELETE FROM solution_categories WHERE id=%s", (id,))
+        conn.commit()
+        flash("ลบหมวดหมู่เรียบร้อยแล้ว", "success")
+    except Exception as e:
+        flash(f"เกิดข้อผิดพลาด: {e}", "danger")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("solutions_categories"))
+
+
+
 # ---------------------------------
 # RUN
 # --------------------------------
