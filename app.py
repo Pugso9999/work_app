@@ -744,7 +744,6 @@ def solutions_categories_all():
     return render_template("solutions_categories_all.html", categories=categories)
 
 
-
 @app.route("/add_category", methods=["GET", "POST"])
 def add_category():
     if request.method == "POST":
