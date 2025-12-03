@@ -15,7 +15,7 @@
     <div class="d-flex justify-content-between align-items-center">
         <h2 class="kb-title"><i class="bi bi-lightbulb"></i> {{ category.name }}</h2>
 
-        <a href="{{ url_for('add_solution', category_id=category.id) }}" class="btn btn-primary">
+        <a href="{{ url_for('add_solutions', category_id=category.id) }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> เพิ่มวิธีแก้
         </a>
     </div>
@@ -37,7 +37,7 @@
                 <div class="accordion-body">
                     <p>{{ s.detail }}</p>
 
-                    <form method="POST" action="{{ url_for('delete_solution', id=s.id) }}"
+                    <form method="POST" action="{{ url_for('delete_solutions', id=s.id) }}"
                           onsubmit="return confirm('ต้องการลบข้อมูลนี้หรือไม่?');">
                         <button class="btn btn-sm btn-danger">
                             <i class="bi bi-trash"></i> ลบ
@@ -58,7 +58,7 @@
 document.getElementById("searchBox").addEventListener("keyup", function () {
     let keyword = this.value.toLowerCase();
 
-    document.querySelectorAll(".solution-item").forEach(item => {
+    document.querySelectorAll(".solutions-item").forEach(item => {
         item.style.display = item.innerText.toLowerCase().includes(keyword) ? "" : "none";
     });
 });
