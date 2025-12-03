@@ -2,47 +2,115 @@
 {% block content %}
 
 <style>
-    .kb-title {
-        background: linear-gradient(45deg, #7b3cff, #c700ff);
-        -webkit-background-clip: text;
-        color: transparent;
-        font-weight: bold;
-    }
+/* Header Gradient */
+.kb-header {
+    background: linear-gradient(135deg, #76c7c0, #c0f0ea);
+    color: #034f4f;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Search Box */
+#searchBox {
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid #76c7c0;
+    margin-bottom: 20px;
+}
+
+/* Card Gradient */
+.solution-card {
+    border-radius: 12px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    border: none;
+    color: #034f4f;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+/* Gradient background for each card */
+.solution-card:nth-child(odd) .accordion-button {
+    background: linear-gradient(120deg, #a0e9fd, #76c7c0);
+    color: #034f4f;
+}
+.solution-card:nth-child(even) .accordion-button {
+    background: linear-gradient(120deg, #b8f2e6, #34a0a4);
+    color: #034f4f;
+}
+
+.solution-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+/* Buttons */
+.btn-add {
+    background-color: #34a0a4;
+    color: white;
+}
+.btn-add:hover { opacity: 0.9; }
+
+.btn-edit {
+    background-color: #fcbf49;
+    color: #034f4f;
+}
+.btn-edit:hover { opacity: 0.9; }
+
+.btn-delete {
+    background-color: #f94144;
+    color: white;
+}
+.btn-delete:hover { opacity: 0.9; }
+
 </style>
 
 <div class="container mt-4">
 
-    <div class="d-flex justify-content-between align-items-center">
-        <h2 class="kb-title"><i class="bi bi-lightbulb"></i> {{ category.name }}</h2>
-
-        <a href="{{ url_for('add_solutions', category_id=category.id) }}" class="btn btn-primary">
+    <!-- Header + Add Button -->
+    <div class="kb-header d-flex justify-content-between align-items-center">
+        <h2><i class="bi bi-lightbulb"></i> {{ category.name }}</h2>
+        <a href="{{ url_for('add_solutions', category_id=category.id) }}" class="btn btn-add">
             <i class="bi bi-plus-circle"></i> เพิ่มวิธีแก้
         </a>
     </div>
 
-    <input type="text" class="form-control mt-4" id="searchBox" placeholder="ค้นหาปัญหา / คำสำคัญ...">
+    <!-- Search -->
+    <input type="text" id="searchBox" placeholder="ค้นหาปัญหา / คำสำคัญ..." class="form-control">
 
+    <!-- Accordion Solutions -->
     <div class="accordion mt-4" id="solutionsAccordion">
 
         {% for s in solutions %}
-        <div class="accordion-item solution-item">
+        <div class="solution-card accordion-item solution-item">
             <h2 class="accordion-header" id="heading{{ s.id }}">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#collapse{{ s.id }}">
-                    <i class="bi bi-wrench-adjustable me-2"></i> {{ s.title }}
+                    <!-- Icon สร้างความโดดเด่น -->
+                    <i class="bi bi-tools me-2" style="font-size:1.2rem;"></i> {{ s.title }}
                 </button>
             </h2>
 
             <div id="collapse{{ s.id }}" class="accordion-collapse collapse">
                 <div class="accordion-body">
+
                     <p>{{ s.detail }}</p>
 
-                    <form method="POST" action="{{ url_for('delete_solutions', id=s.id) }}"
-                          onsubmit="return confirm('ต้องการลบข้อมูลนี้หรือไม่?');">
-                        <button class="btn btn-sm btn-danger">
-                            <i class="bi bi-trash"></i> ลบ
-                        </button>
-                    </form>
+                    <div class="d-flex mt-2">
+                        <a href="{{ url_for('edit_solutions', id=s.id) }}" class="btn btn-sm btn-edit me-2">
+                            <i class="bi bi-pencil-square"></i> แก้ไข
+                        </a>
+
+                        <form method="POST" action="{{ url_for('delete_solutions', id=s.id) }}" 
+                              style="display:inline;" 
+                              onsubmit="return confirm('ต้องการลบข้อมูลนี้หรือไม่?');">
+                            <button class="btn btn-sm btn-delete">
+                                <i class="bi bi-trash"></i> ลบ
+                            </button>
+                        </form>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -51,14 +119,15 @@
         {% if solutions|length == 0 %}
         <p class="text-center text-muted mt-4">ยังไม่มีข้อมูลในหมวดนี้</p>
         {% endif %}
+
     </div>
 </div>
 
 <script>
-document.getElementById("searchBox").addEventListener("keyup", function () {
+// Live search filter
+document.getElementById("searchBox").addEventListener("keyup", function() {
     let keyword = this.value.toLowerCase();
-
-    document.querySelectorAll(".solutions-item").forEach(item => {
+    document.querySelectorAll(".solution-item").forEach(item => {
         item.style.display = item.innerText.toLowerCase().includes(keyword) ? "" : "none";
     });
 });

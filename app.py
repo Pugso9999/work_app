@@ -659,6 +659,53 @@ def add_solutions(category_id):
 
     return render_template("add_solutions.html", category=category)
 
+# แก้ไข Solution
+@app.route("/solutions/edit/<int:id>", methods=["GET", "POST"])
+def edit_solutions(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, category_id, title, detail FROM solutions WHERE id=%s", (id,))
+    solution = cur.fetchone()
+
+    if not solution:
+        flash("ไม่พบวิธีแก้ปัญหานี้", "danger")
+        return redirect(url_for("solutions", category_id=0))  # หรือ redirect หน้า categories
+
+    if request.method == "POST":
+        title = request.form["title"]
+        detail = request.form["detail"]
+
+        cur.execute("UPDATE solutions SET title=%s, detail=%s WHERE id=%s",
+                    (title, detail, id))
+        conn.commit()
+        conn.close()
+        flash("แก้ไขเรียบร้อยแล้ว", "success")
+        return redirect(url_for("solutions", category_id=solution['category_id']))
+
+    conn.close()
+    return render_template("edit_solution.html", solution=solution)
+
+
+# ลบ Solution
+@app.route("/solutions/delete/<int:id>", methods=["POST"])
+def delete_solutions(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT category_id FROM solutions WHERE id=%s", (id,))
+    solution = cur.fetchone()
+
+    if solution:
+        category_id = solution['category_id']
+        cur.execute("DELETE FROM solutions WHERE id=%s", (id,))
+        conn.commit()
+
+    conn.close()
+    flash("ลบวิธีแก้ปัญหาสำเร็จ", "success")
+    return redirect(url_for("solutions", category_id=category_id))
+
+
 @app.route("/solutions/<int:category_id>")
 def solutions(category_id):
     conn = get_db_connection()
