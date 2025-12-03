@@ -728,6 +728,23 @@ def solutions(category_id):
     conn.close()
     return render_template("solutions.html", category=category, solutions=solutions)
     
+
+@app.route("/solutions_categories_all")
+def solutions_categories_all():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT sc.*, 
+               (SELECT COUNT(*) FROM solutions WHERE category_id = sc.id) AS problem_count
+        FROM solutions_categories sc
+        ORDER BY sc.id
+    """)
+    categories = cur.fetchall()
+    conn.close()
+    return render_template("solutions_categories_all.html", categories=categories)
+
+
+
 @app.route("/add_category", methods=["GET", "POST"])
 def add_category():
     if request.method == "POST":
@@ -738,7 +755,8 @@ def add_category():
         conn.commit()
         conn.close()
         flash("✅ เพิ่มหมวดหมู่สำเร็จ", "success")
-        return redirect(url_for("solutions_categories"))
+        return redirect(url_for("solutions_categories_all"))
+
 
     return render_template("add_category.html")
 
@@ -750,7 +768,7 @@ def delete_category(id):
     # ถ้าตาราง solutions มี FOREIGN KEY category_id แบบ ON DELETE CASCADE
     # การลบ category จะลบ solution ที่อยู่ในหมวดนี้อัตโนมัติ
     try:
-        cur.execute("DELETE FROM solution_categories WHERE id=%s", (id,))
+        cur.execute("DELETE FROM solutions_categories WHERE id=%s", (id,))
         conn.commit()
         flash("ลบหมวดหมู่เรียบร้อยแล้ว", "success")
     except Exception as e:
@@ -759,7 +777,8 @@ def delete_category(id):
         cur.close()
         conn.close()
 
-    return redirect(url_for("solutions_categories"))
+    return redirect(url_for("solutions_categories_all"))
+
 
 
 
