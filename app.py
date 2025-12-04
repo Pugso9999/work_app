@@ -641,24 +641,29 @@ def solutions_categories(category_id):
                            solutions=solutions)
 
 
-@app.route("/solutions/add/<int:category_id>", methods=["GET", "POST"])
+@app.route("/add_solutions/<int:category_id>", methods=["GET", "POST"])
 def add_solutions(category_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
     if request.method == "POST":
+        title = request.form["title"]
+        detail = request.form["detail"]
+
         cur.execute("""
             INSERT INTO solutions (category_id, title, detail)
             VALUES (%s, %s, %s)
-        """, (category_id, request.form["title"], request.form["detail"]))
+        """, (category_id, title, detail))
 
         conn.commit()
         conn.close()
+
         flash("เพิ่มวิธีแก้ปัญหาสำเร็จ", "success")
         return redirect(url_for("solutions", category_id=category_id))
 
-    # ส่ง category_id ไปให้ template
-    return render_template("solutions_add.html", category_id=category_id)
+    conn.close()
+    return render_template("add_solutions.html", category_id=category_id)
+
 
 
 # แก้ไข Solution
