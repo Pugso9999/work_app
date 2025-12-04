@@ -642,13 +642,13 @@ def solutions_categories(category_id):
 
 
 @app.route("/solutions/add/<int:category_id>", methods=["GET", "POST"])
-def add_solution(category_id):
+def add_solutions(category_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
     if request.method == "POST":
         cur.execute("""
-            INSERT INTO kb_solutions (category_id, title, detail)
+            INSERT INTO solutions (category_id, title, detail)
             VALUES (%s, %s, %s)
         """, (category_id, request.form["title"], request.form["detail"]))
 
