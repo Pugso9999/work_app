@@ -656,13 +656,16 @@ def add_solutions(category_id):
         """, (category_id, title, detail))
 
         conn.commit()
+        cur.close()
         conn.close()
 
         flash("เพิ่มวิธีแก้ปัญหาสำเร็จ", "success")
         return redirect(url_for("solutions", category_id=category_id))
 
+    cur.close()
     conn.close()
     return render_template("add_solutions.html", category_id=category_id)
+
 
 
 
