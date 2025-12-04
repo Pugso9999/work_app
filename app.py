@@ -108,7 +108,7 @@ def init_db():
     # ⭐ CREATE knowledge base tables (ถูกต้อง)
     # --------------------------------------------
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS solutions_categories (
+        CREATE TABLE IF NOT EXISTS solutions_categories_all (
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL
         )
@@ -117,7 +117,7 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS solutions (
             id SERIAL PRIMARY KEY,
-            category_id INTEGER REFERENCES solutions_categories(id) ON DELETE CASCADE,
+            category_id INTEGER REFERENCES solutions_categories_all(id) ON DELETE CASCADE,
             title TEXT NOT NULL,
             detail TEXT NOT NULL
         )
@@ -625,18 +625,18 @@ def delete_daily_check_ajax(id):
 # Knowledge Base: Categories
 # ---------------------------------
 # ตัวอย่าง route
-@app.route("/solutions_categories/<int:category_id>")
+@app.route("/solutions_categories_all/<int:category_id>")
 def solutions_categories(category_id):
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM solutions_categories WHERE id=%s", (category_id,))
+    cur.execute("SELECT * FROM solutions_categories_all WHERE id=%s", (category_id,))
     category = cur.fetchone()  # เอา category เดียว
 
     cur.execute("SELECT * FROM solutions WHERE category_id=%s ORDER BY id DESC", (category_id,))
     solutions = cur.fetchall()
     conn.close()
 
-    return render_template("solutions_categories.html",
+    return render_template("solutions_categories_all.html",
                            category=category,
                            solutions=solutions)
 
@@ -721,7 +721,7 @@ def solutions(category_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM solutions_categories WHERE id=%s", (category_id,))
+    cur.execute("SELECT * FROM solutions_categories_all WHERE id=%s", (category_id,))
     category = cur.fetchone()
 
     cur.execute("SELECT * FROM solutions WHERE category_id=%s ORDER BY id DESC", (category_id,))
@@ -739,7 +739,7 @@ def solutions_categories_all():
     # ดึงหมวดหมู่ทั้งหมด พร้อมนับจำนวนวิธีแก้ปัญหาในแต่ละหมวด
     cur.execute("""
         SELECT sc.id, sc.name, COUNT(s.id) AS problem_count
-        FROM solutions_categories sc
+        FROM solutions_categories_all sc
         LEFT JOIN solutions s ON sc.id = s.category_id
         GROUP BY sc.id, sc.name
         ORDER BY sc.id DESC
@@ -756,7 +756,7 @@ def add_category():
         name = request.form.get("name")
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("INSERT INTO solutions_categories (name) VALUES (%s)", (name,))
+        cur.execute("INSERT INTO solutions_categories_all (name) VALUES (%s)", (name,))
         conn.commit()
         conn.close()
         flash("✅ เพิ่มหมวดหมู่สำเร็จ", "success")
@@ -773,7 +773,7 @@ def delete_category(id):
     # ถ้าตาราง solutions มี FOREIGN KEY category_id แบบ ON DELETE CASCADE
     # การลบ category จะลบ solution ที่อยู่ในหมวดนี้อัตโนมัติ
     try:
-        cur.execute("DELETE FROM solutions_categories WHERE id=%s", (id,))
+        cur.execute("DELETE FROM solutions_categories_all WHERE id=%s", (id,))
         conn.commit()
         flash("ลบหมวดหมู่เรียบร้อยแล้ว", "success")
     except Exception as e:
