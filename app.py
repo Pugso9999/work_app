@@ -643,7 +643,7 @@ def add_solutions(category_id):
         cur.close()
         conn.close()
         flash("ไม่พบหมวดหมู่นี้", "danger")
-        return redirect(url_for("solutions_categories_all"))
+        return redirect(url_for("solutions", category_id=id))
 
     if request.method == "POST":
         title = request.form.get("title", "").strip()
@@ -698,7 +698,8 @@ def edit_solutions(id):
         cur.close()
         conn.close()
         flash("ไม่พบวิธีแก้ปัญหานี้", "danger")
-        return redirect(url_for("solutions_categories_all"))
+        return redirect(url_for("solutions", category_id=id))
+
 
     category_id = solution["category_id"]
 
@@ -789,7 +790,8 @@ def add_category():
         conn.commit()
         conn.close()
         flash("✅ เพิ่มหมวดหมู่สำเร็จ", "success")
-        return redirect(url_for("solutions_categories_all"))
+        return redirect(url_for("solutions", category_id=id))
+
 
 
     return render_template("add_category.html")
@@ -811,7 +813,8 @@ def delete_category(id):
         cur.close()
         conn.close()
 
-    return redirect(url_for("solutions_categories_all"))
+    return redirect(url_for("solutions", category_id=id))
+
 
 
 
