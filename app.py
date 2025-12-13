@@ -626,7 +626,7 @@ def delete_daily_check_ajax(id):
 # ---------------------------------
 # ตัวอย่าง route
 @app.route("/solutions_categories_all/<int:category_id>")
-def solutions_categories_all(category_id):
+def solutions_categories(category_id):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM solutions_categories_all WHERE id=%s", (category_id,))
