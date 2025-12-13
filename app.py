@@ -646,25 +646,51 @@ def add_solutions(category_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    if request.method == "POST":
-        title = request.form["title"]
-        detail = request.form["detail"]
+    # 🔒 เช็คว่า category มีอยู่จริง
+    cur.execute(
+        "SELECT id FROM solution_categories WHERE id = %s",
+        (category_id,)
+    )
+    category = cur.fetchone()
 
-        cur.execute("""
-            INSERT INTO solutions (category_id, title, detail)
-            VALUES (%s, %s, %s)
-        """, (category_id, title, detail))
-
-        conn.commit()
+    if not category:
         cur.close()
         conn.close()
+        flash("ไม่พบหมวดหมู่นี้ หรือถูกลบไปแล้ว", "danger")
+        return redirect(url_for("solutions_categories_all"))
 
-        flash("เพิ่มวิธีแก้ปัญหาสำเร็จ", "success")
+    if request.method == "POST":
+        title = request.form.get("title")
+        detail = request.form.get("detail")
+
+        if not title or not detail:
+            flash("กรุณากรอกข้อมูลให้ครบ", "warning")
+            return redirect(url_for("add_solutions", category_id=category_id))
+
+        try:
+            cur.execute("""
+                INSERT INTO solutions (category_id, title, detail)
+                VALUES (%s, %s, %s)
+            """, (category_id, title, detail))
+
+            conn.commit()
+            flash("เพิ่มวิธีแก้ปัญหาสำเร็จ", "success")
+
+        except Exception as e:
+            conn.rollback()
+            flash("เกิดข้อผิดพลาดในการบันทึกข้อมูล", "danger")
+            print(e)
+
+        finally:
+            cur.close()
+            conn.close()
+
         return redirect(url_for("solutions", category_id=category_id))
 
     cur.close()
     conn.close()
     return render_template("add_solutions.html", category_id=category_id)
+
 
 
 
@@ -694,7 +720,7 @@ def edit_solutions(id):
         return redirect(url_for("solutions", category_id=solution['category_id']))
 
     conn.close()
-    return render_template("edit_solution.html", solution=solution)
+    return render_template("edit_solutions.html", solution=solution)
 
 
 # ลบ Solution
