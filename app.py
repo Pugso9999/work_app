@@ -648,7 +648,7 @@ def add_solutions(category_id):
 
     # 🔒 เช็คว่า category มีอยู่จริง
     cur.execute(
-        "SELECT id FROM solution_categories_all WHERE id = %s",
+        "SELECT id FROM solutions_categories_all WHERE id = %s",
         (category_id,)
     )
     category = cur.fetchone()
@@ -705,9 +705,9 @@ def edit_solutions(id):
         "SELECT id, category_id, title, detail FROM solutions WHERE id=%s",
         (id,)
     )
-    solution = cur.fetchone()
+    solutions = cur.fetchone()
 
-    if not solution:
+    if not solutions:
         flash("ไม่พบวิธีแก้ปัญหานี้", "danger")
         return redirect(url_for("solutions_categories_all"))
 
@@ -726,12 +726,12 @@ def edit_solutions(id):
         flash("แก้ไขเรียบร้อยแล้ว", "success")
         return redirect(url_for(
             "solutions",
-            category_id=solution["category_id"]
+            category_id=solutions["category_id"]
         ))
 
     cur.close()
     conn.close()
-    return render_template("edit_solutions.html", solution=solution)
+    return render_template("edit_solutions.html", solutions=solutions)
 
 
 
@@ -742,10 +742,10 @@ def delete_solutions(id):
     cur = conn.cursor()
 
     cur.execute("SELECT category_id FROM solutions WHERE id=%s", (id,))
-    solution = cur.fetchone()
+    solutions= cur.fetchone()
 
-    if solution:
-        category_id = solution['category_id']
+    if solutions:
+        category_id = solutions['category_id']
         cur.execute("DELETE FROM solutions WHERE id=%s", (id,))
         conn.commit()
 

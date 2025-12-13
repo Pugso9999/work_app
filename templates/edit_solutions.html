@@ -23,7 +23,9 @@
                 </div>
 
                 <button class="btn btn-warning"><i class="bi bi-check"></i> บันทึกแก้ไข</button>
-                <a href="{{ url_for('edit_solutions', id=s.id) }}" class="btn btn-sm btn-edit me-2">ย้อนกลับ</a>
+                <a href="{{ url_for('solutions', category_id=solution.category_id) }}"
+                class="btn btn-secondary">ย้อนกลับ </a>
+
 
             </form>
         </div>
