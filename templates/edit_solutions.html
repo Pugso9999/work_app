@@ -13,8 +13,9 @@
 
                 <div class="mb-3">
                     <label class="form-label">หัวข้อ:</label>
-                    <input type="text" name="title" class="form-control" 
-                           value="{{ solution.title }}" required>
+                    <input type="text" name="title" value="{{ solution.title }}">
+                    <textarea name="detail">{{ solution.detail }}</textarea>
+
                 </div>
 
                 <div class="mb-3">

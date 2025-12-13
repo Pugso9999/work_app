@@ -705,33 +705,37 @@ def edit_solutions(id):
         "SELECT id, category_id, title, detail FROM solutions WHERE id=%s",
         (id,)
     )
-    solutions = cur.fetchone()
+    solution = cur.fetchone()
 
-    if not solutions:
+    if not solution:
+        cur.close()
+        conn.close()
         flash("ไม่พบวิธีแก้ปัญหานี้", "danger")
         return redirect(url_for("solutions_categories_all"))
 
-    if request.method == "POST":
-        title = request.form["title"]
-        detail = request.form["detail"]
+    category_id = solution["category_id"]
 
-        cur.execute(
-            "UPDATE solutions SET title=%s, detail=%s WHERE id=%s",
-            (title, detail, id)
-        )
+    if request.method == "POST":
+        title = request.form.get("title")
+        detail = request.form.get("detail")
+
+        cur.execute("""
+            UPDATE solutions 
+            SET title=%s, detail=%s 
+            WHERE id=%s
+        """, (title, detail, id))
+
         conn.commit()
         cur.close()
         conn.close()
 
         flash("แก้ไขเรียบร้อยแล้ว", "success")
-        return redirect(url_for(
-            "solutions",
-            category_id=solutions["category_id"]
-        ))
+        return redirect(url_for("solutions", category_id=category_id))
 
     cur.close()
     conn.close()
-    return render_template("edit_solutions.html", solutions=solutions)
+    return render_template("edit_solutions.html", solution=solution)
+
 
 
 
