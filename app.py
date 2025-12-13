@@ -644,11 +644,10 @@ def solutions_categories(category_id):
 @app.route("/add_solutions/<int:category_id>", methods=["GET", "POST"])
 def add_solutions(category_id):
     conn = get_db_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    # 🔒 เช็คว่า category มีอยู่จริง
     cur.execute(
-        "SELECT id FROM solutions_categories_all WHERE id = %s",
+        "SELECT id FROM solutions_categories_all WHERE id=%s",
         (category_id,)
     )
     category = cur.fetchone()
@@ -656,12 +655,12 @@ def add_solutions(category_id):
     if not category:
         cur.close()
         conn.close()
-        flash("ไม่พบหมวดหมู่นี้ หรือถูกลบไปแล้ว", "danger")
+        flash("ไม่พบหมวดหมู่นี้", "danger")
         return redirect(url_for("solutions_categories_all"))
 
     if request.method == "POST":
-        title = request.form.get("title")
-        detail = request.form.get("detail")
+        title = request.form.get("title", "").strip()
+        detail = request.form.get("detail", "").strip()
 
         if not title or not detail:
             flash("กรุณากรอกข้อมูลให้ครบ", "warning")
@@ -678,8 +677,8 @@ def add_solutions(category_id):
 
         except Exception as e:
             conn.rollback()
-            flash("เกิดข้อผิดพลาดในการบันทึกข้อมูล", "danger")
-            print(e)
+            print("❌ ADD SOLUTION ERROR:", e)
+            flash(str(e), "danger")
 
         finally:
             cur.close()
@@ -690,6 +689,7 @@ def add_solutions(category_id):
     cur.close()
     conn.close()
     return render_template("add_solutions.html", category_id=category_id)
+
 
 
 
