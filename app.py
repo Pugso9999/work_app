@@ -648,7 +648,7 @@ def add_solutions(category_id):
 
     # 🔒 เช็คว่า category มีอยู่จริง
     cur.execute(
-        "SELECT id FROM solution_categories WHERE id = %s",
+        "SELECT id FROM solution_categories_all WHERE id = %s",
         (category_id,)
     )
     category = cur.fetchone()
@@ -699,28 +699,40 @@ def add_solutions(category_id):
 @app.route("/solutions/edit/<int:id>", methods=["GET", "POST"])
 def edit_solutions(id):
     conn = get_db_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    cur.execute("SELECT id, category_id, title, detail FROM solutions WHERE id=%s", (id,))
+    cur.execute(
+        "SELECT id, category_id, title, detail FROM solutions WHERE id=%s",
+        (id,)
+    )
     solution = cur.fetchone()
 
     if not solution:
         flash("ไม่พบวิธีแก้ปัญหานี้", "danger")
-        return redirect(url_for("solutions", category_id=0))  # หรือ redirect หน้า categories
+        return redirect(url_for("solutions_categories_all"))
 
     if request.method == "POST":
         title = request.form["title"]
         detail = request.form["detail"]
 
-        cur.execute("UPDATE solutions SET title=%s, detail=%s WHERE id=%s",
-                    (title, detail, id))
+        cur.execute(
+            "UPDATE solutions SET title=%s, detail=%s WHERE id=%s",
+            (title, detail, id)
+        )
         conn.commit()
+        cur.close()
         conn.close()
-        flash("แก้ไขเรียบร้อยแล้ว", "success")
-        return redirect(url_for("solutions", category_id=solution['category_id']))
 
+        flash("แก้ไขเรียบร้อยแล้ว", "success")
+        return redirect(url_for(
+            "solutions",
+            category_id=solution["category_id"]
+        ))
+
+    cur.close()
     conn.close()
     return render_template("edit_solutions.html", solution=solution)
+
 
 
 # ลบ Solution
