@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, render_template, request, redirect, url_for, flash
+import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import date, datetime, timedelta
 import subprocess
-import os
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
@@ -816,7 +817,6 @@ def delete_category(id):
 
     # หลังลบ กลับไปหน้ารายการหมวดหมู่
     return redirect(url_for("solutions_categories_all"))
-
 
 
 
