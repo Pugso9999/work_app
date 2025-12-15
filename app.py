@@ -643,7 +643,8 @@ def add_solutions(category_id):
         cur.close()
         conn.close()
         flash("ไม่พบหมวดหมู่นี้", "danger")
-        return redirect(url_for("solutions", category_id=id))
+        # กลับไปหน้ารายการหมวดหมู่แทน (ใช้ชื่อ route ที่ถูกต้อง)
+        return redirect(url_for("solutions_categories_all"))
 
     if request.method == "POST":
         title = request.form.get("title", "").strip()
@@ -790,7 +791,7 @@ def add_category():
         conn.commit()
         conn.close()
         flash("✅ เพิ่มหมวดหมู่สำเร็จ", "success")
-        return redirect(url_for("solutions", category_id=id))
+        return redirect(url_for("solutions_categories_all"))
 
 
 
@@ -813,7 +814,8 @@ def delete_category(id):
         cur.close()
         conn.close()
 
-    return redirect(url_for("solutions", category_id=id))
+    # หลังลบ กลับไปหน้ารายการหมวดหมู่
+    return redirect(url_for("solutions_categories_all"))
 
 
 
