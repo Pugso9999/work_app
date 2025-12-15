@@ -5,6 +5,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import date, datetime, timedelta
 import subprocess
+import shutil
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
@@ -829,3 +830,21 @@ init_db()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
+
+# สำรองฐานข้อมูลทุกครั้งที่มีการเปลี่ยนแปลง
+@app.before_request
+def before_request():
+    # ตรวจสอบว่าเป็นการเชื่อมต่อจาก Render หรือไม่
+    if os.environ.get("RENDER") == "true":
+        # สำรองฐานข้อมูล
+        try:
+            # กำหนดชื่อไฟล์สำรอง
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_file = f"backups/worklog_{timestamp}.db"
+
+            # คำสั่งสำรองข้อมูล
+            shutil.copyfile("worklog.db", backup_file)
+
+            print(f"[Backup] ✅ สำรองฐานข้อมูลเรียบร้อย: {backup_file}")
+        except Exception as e:
+            print(f"[Backup Error] {e}")
